@@ -1,5 +1,5 @@
 # Recommended Development Setup
-- Mac OSX, latest version
+- Mac OSX, latest version or Ubuntu 14.04 (I have mine running in a container inside Paralells)
 - JDK 8
 - Maven
 
