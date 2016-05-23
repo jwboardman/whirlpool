@@ -11,6 +11,7 @@ However, logging in with unique usernames on multiple browsers or tabs is not on
 
 ## Prerequisites
 - add zookeeper.whirlpool, kafka.whirlpool, and local.whirlpool to your local hosts file. I recommend using your assigned IP instead of localhost or 127.0.0.1. For example, mine is
+
 192.168.1.100 zookeeper.whirlpool kafka.whirlpool local.whirlpool
 
 ## Build/Start App
