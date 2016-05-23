@@ -198,7 +198,7 @@ public abstract class BaseService {
                         }
                     }
 
-                    // only collect data every 10 seconds so remote servcies aren't overwhelmed with messages
+                    // only collect data every 10 seconds so remote services aren't overwhelmed with messages
                     Thread.sleep(10000L);
                 }
             } catch (Throwable throwable) {

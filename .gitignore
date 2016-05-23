@@ -72,6 +72,7 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
 ### Eclipse template
 
 .metadata
@@ -87,7 +88,6 @@ local.properties
 .recommenders
 
 # Eclipse Core
-.project
 
 # External tool builders
 .externalToolBuilders/
