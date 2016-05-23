@@ -35,7 +35,7 @@ and builds runnable deployed targets. Finally, it starts Zookeeper, then Kafka, 
 
 ## About the UI
 Here's a screenshot:
-![Whirlpool Screen Shot](https://github.com/jboardman/whirlpool/screenshot.png?raw=true "Whirlpool")
+![Whirlpool Screen Shot](https://github.com/jwboardman/whirlpool/blob/master/whirlpool.png?raw=true "Whirlpool")
 
 - To add a stock symbol, type it in (i.e. "GOOG") and click the A button under "Stock". To remove it, click the X.
 - To add a website to test whether it is up or down, type in the fully-qualified URL (i.e. http://facebook.com) and click the A button under "UpDown". To remove it, click the X.
