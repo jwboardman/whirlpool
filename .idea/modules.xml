@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/common/common.iml" filepath="$PROJECT_DIR$/common/common.iml" />
+      <module fileurl="file://$PROJECT_DIR$/stockservice/stockservice.iml" filepath="$PROJECT_DIR$/stockservice/stockservice.iml" />
+      <module fileurl="file://$PROJECT_DIR$/updownservice/updownservice.iml" filepath="$PROJECT_DIR$/updownservice/updownservice.iml" />
+      <module fileurl="file://$PROJECT_DIR$/weatherservice/weatherservice.iml" filepath="$PROJECT_DIR$/weatherservice/weatherservice.iml" />
+      <module fileurl="file://$PROJECT_DIR$/whirlpool.iml" filepath="$PROJECT_DIR$/whirlpool.iml" />
+      <module fileurl="file://$PROJECT_DIR$/whirlpoolserver/whirlpoolserver.iml" filepath="$PROJECT_DIR$/whirlpoolserver/whirlpoolserver.iml" />
+    </modules>
+  </component>
+</project>

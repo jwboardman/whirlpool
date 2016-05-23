@@ -1,0 +1,13 @@
+.red {color: red;}
+.hide {display: none;}
+.showBlock {display: block;}
+.showInline {display: inline;}
+.showFlex {display: flex;}
+
+* {
+    margin: 4px;
+}
+
+th, td {
+    padding: 1px;
+}

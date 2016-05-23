@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+    <head lang="en">
+        <meta charset="UTF-8">
+        <title>Microservice WebSocket Example</title>
+        <!-- inject:css -->
+        <link rel="stylesheet" href="/css/bootstrap.css">
+        <link rel="stylesheet" href="/css/ticker.css">
+        <!-- endinject -->
+
+        <!-- inject:js -->
+        <script src="/js/ticker.js"></script>
+        <!-- endinject -->
+    </head>
+
+    <body>
+        <div id="logindiv">
+            <table>
+                <tr>
+                    <td style="text-align: left;">Username</td>
+                    <td><input id="user" type="text" size="40" onkeypress=""></td>
+                </tr>
+                <tr>
+                    <td style="text-align: left;">Password</td>
+                    <td><input id="password" type="password" size="40"></td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        &nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <button id="login" onclick="login(document.getElementById('user').value, document.getElementById('password').value); return false;">Login</button>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div id="maindiv" class="hide">
+            <p id="current_user"></p>
+
+            <table>
+                <tr>
+                    <th style="text-align: left;">Data</th>
+                    <th style="text-align: left;">Stock</th>
+                    <th style="text-align: left;">UpDown</th>
+                    <th style="text-align: left;">City,State</th>
+                    <th></th>
+                </tr>
+                <tr>
+                    <td width="300px">
+                        <input id="data" type="text" size="40">
+                    </td>
+                    <td width="100px">
+                        <input id="add_stock" type="button" value="A"
+                               onclick="sendStockAdd(document.getElementById('data').value); return false;">
+                        <input id="remove_stock" class="red" type="button" value="X"
+                               onclick="sendStockRemove(document.getElementById('data').value); return false;">
+                    </td>
+                    <td width="100px">
+                        <input id="add_updown" type="button" value="A"
+                               onclick="sendUpDownAdd(document.getElementById('data').value); return false;">
+                        <input id="remove_updown" class="red" type="button" value="X"
+                               onclick="sendUpDownRemove(document.getElementById('data').value); return false;">
+                    </td>
+                    <td width="100px">
+                        <input id="add_weather" type="button" value="A"
+                               onclick="sendWeatherAdd(document.getElementById('data').value); return false;">
+                        <input id="remove_weather" class="red" type="button" value="X"
+                               onclick="sendWeatherRemove(document.getElementById('data').value); return false;">
+                    </td>
+                    <td>
+                        <button onclick="logout(); return false;">Logout</button>
+                    </td>
+                </tr>
+            </table>
+
+            <p>&nbsp;</p>
+
+            <table style="width: 100%">
+                <tr>
+                    <th style="text-align: left; width: 20%;">Stocks</th>
+                    <th style="text-align: left; width: 40%;">UpDown</th>
+                    <th style="text-align: left; width: 40%;">Weather</th>
+                </tr>
+                <tr>
+                    <td><select id="stocklist" size="20" style="width: 90%"></select></td>
+                    <td><select id="updownlist" size="20" style="width: 90%"></select></td>
+                    <td><select id="weatherlist" size="20" style="width: 90%"></select></td>
+                </tr>
+            </table>
+
+            <p>&nbsp;</p>
+
+            <select id="output" size="20" style="width: 100%"></select>
+        </div>
+    </body>
+</html>

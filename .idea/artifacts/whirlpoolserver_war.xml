@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="war" name="whirlpoolserver:war">
+    <output-path>$PROJECT_DIR$/whirlpoolserver/target</output-path>
+    <root id="archive" name="whirlpoolserver.war">
+      <element id="artifact" artifact-name="whirlpoolserver:war exploded" />
+    </root>
+  </artifact>
+</component>
