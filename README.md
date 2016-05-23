@@ -15,13 +15,16 @@ Logging in with unique usernames on multiple browsers or tabs is not only allowe
 
 192.168.1.100 zookeeper.whirlpool kafka.whirlpool local.whirlpool
 
-## Build/Start App
+## Install/Build/Start Zookeeper, Kafka, Services, and Server
 - For this script, do NOT click out of your terminal window until the WhirlpoolServer tab starts. Otherwise the script will act like it worked, but will actually fail.
 - Run ./maclocal_run.sh
+- This will download (if it isn't already) version 0.9.0.1 of Kafka (with Scala 2.11) that includes Zookeeper, install them, and configure them. It will then kick off the maven build that compiles
+and builds runnable deployed targets. Finally, it starts Zookeeper, then Kafka, then the services, and finally the server.
 
 ## Stop
 - This script shuts down everything, but you still have to close the tabs. I haven't found a way to do that yet.
 - Run ./maclocal_kill.sh
+- This will kill the services and server, then shut down Kafka, then shutdown Zookeeper. `NOTE`: It will also `remove` the kafka logs and zookeeper data!!!
 
 ## Ports/Logs
 - http://local.whirlpool:8080/ - the app
