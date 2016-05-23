@@ -7,7 +7,8 @@
 - I'm using Java 8, Kafka 0.9.0.1, and Netty 4.0.32. The script will auto-install (and remove!) Zk/Kafka version 0.9.0.1, so if you have an existing installation, save it or don't use the script!
 - No database or security has been included because this is an example.
 - Use any username you like, and the password doesn't matter. Note that logging in multiple times with the same username is not allowed due to the simplistic "session" support with no true users or security present.
-However, logging in with unique usernames on multiple browsers or tabs is not only allowed, it is coded for (users each have their own subscriptions) and encouraged.
+It would not take a lot of work to add true sessions and allow multiple logins using the same username, with updates for a user sent to all the websockets that the user currently has open.
+Logging in with unique usernames on multiple browsers or tabs is not only allowed, it is coded for (users each have their own subscriptions) and encouraged.
 
 ## Prerequisites
 - add zookeeper.whirlpool, kafka.whirlpool, and local.whirlpool to your local hosts file. I recommend using your assigned IP instead of localhost or 127.0.0.1. For example, mine is
