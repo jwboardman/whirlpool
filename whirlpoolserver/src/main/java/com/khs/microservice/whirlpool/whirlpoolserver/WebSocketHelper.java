@@ -37,7 +37,7 @@ public class WebSocketHelper {
         }
 
         if (nettyCookie != null) {
-            response.headers().set(HttpHeaders.Names.SET_COOKIE, ServerCookieEncoder.LAX.encode(nettyCookie));
+            response.headers().set(HttpHeaders.Names.SET_COOKIE, ServerCookieEncoder.STRICT.encode(nettyCookie));
         }
         // Write the initial line and the header.
         channel.write(response);

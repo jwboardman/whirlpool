@@ -22,8 +22,8 @@ Logging in with unique usernames on multiple browsers or tabs is not only allowe
 - For this script, do NOT click out of your terminal window until the WhirlpoolServer tab starts. Otherwise the script will act like it worked, but will actually fail.
 - Run ./maclocal_run.sh
 - `NOTE`: This will `REMOVE ANY EXISTING KAFKA INSTALLATION` located at /Applications/kafka and /Applications/kafka_2.11-0.9.0.1 along with `ALL` data in /tmp/zookeeper and /tmp/kafka-logs!
-- This will download (if it isn't already) version 0.9.0.1 of Kafka (with Scala 2.11) that includes Zookeeper, install them, and configure them. It will then kick off the maven build that compiles
-and builds runnable deployed targets. Finally, it starts Zookeeper, then Kafka, then the services, and finally the server.
+- This will download (if it isn't already) version 0.9.0.1 of Kafka (with Scala 2.11) that includes Zookeeper, install them, and configure them, and starts them. It will then kick off the maven build that compiles
+and builds runnable deployed targets. Finally, it starts the services, and finally the server.
 
 ## Stop
 - This script shuts down everything, but you still have to close the tabs. I haven't found a way to do that yet.

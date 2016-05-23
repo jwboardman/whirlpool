@@ -9,18 +9,13 @@ import com.khs.microservice.whirlpool.common.MessageConstants;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -33,7 +28,7 @@ public abstract class BaseService {
     protected ExecutorService consumerExecutor;
     protected ExecutorService producerExecutor;
     protected ExecutorService dataExecutor;
-    protected final ConcurrentLinkedQueue<String> responseQueue = new ConcurrentLinkedQueue<>();
+    protected final Queue<String> responseQueue = new ConcurrentLinkedQueue<>();
     protected final AtomicBoolean keepRunning = new AtomicBoolean(true);
 
     // Keep track of the subscriptions each user has asked for info about

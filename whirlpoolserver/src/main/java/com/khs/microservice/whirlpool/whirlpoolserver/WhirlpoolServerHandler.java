@@ -114,10 +114,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
     }
 
     protected void handleMessageCompleted(ChannelHandlerContext ctx, String frameText) {
-        String response = wsMessageHandler.handleMessage(ctx, frameText);
-        if (response != null) {
-            //ctx.channel().writeAndFlush(new TextWebSocketFrame(response));
-        }
+        wsMessageHandler.handleMessage(ctx, frameText);
     }
 
     protected boolean handleREST(ChannelHandlerContext ctx, FullHttpRequest req) {
@@ -138,7 +135,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
         String cookieUserName = null;
         String cookieString = req.headers().get(HttpHeaders.Names.COOKIE);
         if (cookieString != null) {
-            Set<Cookie> cookies = ServerCookieDecoder.LAX.decode(cookieString);
+            Set<Cookie> cookies = ServerCookieDecoder.STRICT.decode(cookieString);
             if (!cookies.isEmpty()) {
                 // Reset the cookies if necessary.
                 for (Cookie cookie: cookies) {
