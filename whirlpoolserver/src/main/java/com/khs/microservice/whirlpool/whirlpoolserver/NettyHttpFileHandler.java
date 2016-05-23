@@ -21,9 +21,9 @@ import java.util.regex.Pattern;
 public class NettyHttpFileHandler {
    private static final Logger logger = LoggerFactory.getLogger(NettyHttpFileHandler.class);
 
-   private   static final Pattern INSECURE_URI = Pattern.compile(".*[<>&\"].*");
-   private   static final Object  _lock = new Object();
-   private   static final String  staticFileDir = "./webapp";
+   private static final Pattern INSECURE_URI = Pattern.compile(".*[<>&\"].*");
+   private static final Object  _lock = new Object();
+   private static final String  staticFileDir = "./webapp";
 
    protected static MimetypesFileTypeMap mimeTypesMap;
 
@@ -117,7 +117,7 @@ public class NettyHttpFileHandler {
          lastContentFuture = ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
       } else {
          sendFileFuture = ctx.write(new HttpChunkedInput(new ChunkedFile(raf, 0, fileLength, 8192)),
-                         ctx.newProgressivePromise());
+                          ctx.newProgressivePromise());
          // HttpChunkedInput will write the end marker (LastHttpContent) for us.
          lastContentFuture = sendFileFuture;
       }

@@ -15,6 +15,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.util.Arrays;
@@ -23,6 +25,8 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
+    private static final Logger logger = LoggerFactory.getLogger(WhirlpoolMessageHandler.class);
+
     // stateless JSON serializer/deserializer
     private Gson gson = new Gson();
 
@@ -119,16 +123,16 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
                                             e.printStackTrace();
                                         }
 
-                                        System.out.println("The offset of the record we just sent is: " + metadata.offset());
+                                        logger.debug("The offset of the record we just sent is: " + metadata.offset());
                                     });
                         }
                     }
 
                     producer.flush();
-                    Thread.sleep(100L);
+                    Thread.sleep(20L);
                 }
             } catch (Throwable throwable) {
-                System.out.printf("%s", throwable.getStackTrace());
+                logger.error(throwable.getMessage(), throwable);
             } finally {
                 producer.close();
             }
@@ -161,12 +165,12 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
                     if (records.count() == 0) {
                         timeouts++;
                     } else {
-                        System.out.printf("Got %d records after %d timeouts\n", records.count(), timeouts);
+                        logger.trace(String.format("Got %d records after %d timeouts\n", records.count(), timeouts));
                         timeouts = 0;
                     }
 
                     for (ConsumerRecord<String, String> record : records) {
-                        System.out.printf("Record for topic %s on partition %d offset %d is: %s\n", record.topic(), record.partition(), record.offset(), record.value());
+                        logger.trace(String.format("Record for topic %s on partition %d offset %d is: %s\n", record.topic(), record.partition(), record.offset(), record.value()));
                         switch (record.topic()) {
                             case "stock-ticker":
                             case "weather":
@@ -183,7 +187,7 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
                                 }
 
                                 if (!channelFound) {
-                                    System.out.println("Can't get channel because id wasn't set!");
+                                    logger.warn("Can't get channel because id wasn't set!");
                                 }
                                 break;
 

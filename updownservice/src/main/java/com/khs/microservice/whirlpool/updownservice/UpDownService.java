@@ -27,7 +27,7 @@ public class UpDownService extends BaseService {
         try {
             Thread.sleep(Long.MAX_VALUE);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage(), e);
         }
     }
 
@@ -69,7 +69,7 @@ public class UpDownService extends BaseService {
             } catch (HttpHostConnectException hhce) {
                 subscriptionData.put(url, "down");
             } catch (Throwable throwable) {
-                throwable.printStackTrace();
+                logger.error(throwable.getMessage(), throwable);
                 subscriptionData.put(url, "down");
             }
         }

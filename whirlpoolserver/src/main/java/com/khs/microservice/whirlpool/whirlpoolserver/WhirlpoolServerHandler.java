@@ -47,19 +47,19 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         String client = ctx.channel().attr(WebSocketHelper.getClientAttr()).get();
-        System.out.println("[INACTIVE] Channel with client " + client + " has gone inactive");
+        logger.info(String.format("[INACTIVE] Channel with client %s has gone inactive", client));
         super.channelInactive(ctx);
     }
 
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("[START] New Channel has been initialzed");
+        logger.info("[START] New Channel has been initialzed");
         super.handlerAdded(ctx);
     }
 
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("[END] A Channel has been removed");
+        logger.info("[END] A Channel has been removed");
         super.handlerRemoved(ctx);
     }
 
@@ -214,7 +214,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
                         for (Channel channel : channels) {
                             String key = channel.attr(WebSocketHelper.getClientAttr()).get();
                             if (key.equals(username)) {
-                                System.out.println("Existing user found, failing login!");
+                                logger.error(String.format("Existing user '%s' found, failing login!", username));
                                 nettyCookie = WebSocketHelper.expireCookie(authCookieName, host);
                                 message = "{\"response\": \"fail\", \"reason\": \"Unauthorized, user '" + username + "' is already logged in\"}\r\n";
                                 FullHttpResponse response = new DefaultFullHttpResponse(
@@ -242,7 +242,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
                     for (Channel channel : channels) {
                         String key = channel.attr(WebSocketHelper.getClientAttr()).get();
                         if (key.equals(userName)) {
-                            System.out.println("Logged out, removing client id from channel and removing channel");
+                            logger.info(String.format("Logged out, removing client '%s' from channel and removing channel", userName));
                             channel.attr(WebSocketHelper.getClientAttr()).set(null);
                             channels.remove(channel);
                             channel.writeAndFlush(new CloseWebSocketFrame());
@@ -292,7 +292,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
                             return;
                         }
 
-                        System.out.println("Authorized, websocket upgrade complete, adding client id to channel and saving channel");
+                        logger.info(String.format("Authorized, websocket upgrade complete, adding client '%s' to channel and saving channel", userName));
                         future.channel().attr(WebSocketHelper.getClientAttr()).set(userName);
                         channels.add(future.channel());
                     }

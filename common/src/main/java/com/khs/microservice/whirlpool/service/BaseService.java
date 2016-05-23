@@ -13,6 +13,8 @@ import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.util.Collections;
@@ -26,6 +28,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * This class contains the common code for all the services
  */
 public abstract class BaseService {
+    protected static final Logger logger = LoggerFactory.getLogger(BaseService.class);
+
     protected ExecutorService consumerExecutor;
     protected ExecutorService producerExecutor;
     protected ExecutorService dataExecutor;
@@ -74,11 +78,16 @@ public abstract class BaseService {
         dataExecutor.execute(dataTickers);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("Shutting down...");
+            logger.info("Shutting down...");
             keepRunning.set(false);
         }));
     }
 
+    /**
+     * This class runs as a thread. It looks for data on the configured topic and updates the
+     * appropriate subscription.
+     *
+     */
     public class ReaderCallable implements Callable<String> {
         // one per callable as it is stateless, but not thread safe
         private Gson gson = new Gson();
@@ -108,7 +117,7 @@ public abstract class BaseService {
                     if (records.count() == 0) {
                         timeouts++;
                     } else {
-                        System.out.printf("Got %d records after %d timeouts\n", records.count(), timeouts);
+                        logger.trace(String.format("Got %d records after %d timeouts\n", records.count(), timeouts));
                         timeouts = 0;
                     }
 
@@ -170,10 +179,9 @@ public abstract class BaseService {
     }
 
     /**
-     * This class runs as a thread. It periodically collects prices for ticker symbols
-     * and places them on the responseQueue.
+     * This class runs as a thread. It periodically asks the service to collect data. The service places the data
+     * on the responseQueue.
      *
-     * @author jwb
      */
     public class DataCollectorCallable implements Callable<String> {
         // one per callable as it is stateless, but not thread safe
@@ -195,11 +203,11 @@ public abstract class BaseService {
                         }
                     }
 
-                    // only try to send back to client every 2 seconds so it isn't overwhelmed with messages
+                    // only collect data every 10 seconds so remote servcies aren't overwhelmed with messages
                     Thread.sleep(10000L);
                 }
             } catch (Throwable throwable) {
-                System.out.printf("%s", throwable.getStackTrace());
+                logger.error(throwable.getMessage(), throwable);
             }
 
             return "done";
@@ -207,11 +215,9 @@ public abstract class BaseService {
     }
 
     /**
-     * This class runs as a thread. It periodically collects weather data for city,state combos
-     * and sends them to the weather topic. It also sends responses from the
-     * command topic.
+     * This class runs as a thread. It periodically checks for messages waiting to be sent and places them on
+     * the configured topic.
      *
-     * @author jwb
      */
     class SendDataCallable implements Callable<String> {
         private String topic;
@@ -235,24 +241,24 @@ public abstract class BaseService {
             try {
                 while (keepRunning.get()) {
                     while ((message = responseQueue.poll()) != null) {
-                        System.out.println("Sending message: " + message + " to topic: " + topic);
+                        logger.debug(String.format("Sending message: '%s' to topic: '%s'", message, topic));
                         producer.send(new ProducerRecord<>(topic, message),
                                 (metadata, e) -> {
                                     if (e != null) {
                                         e.printStackTrace();
                                     }
 
-                                    System.out.println("The offset of the record we just sent is: " + metadata.offset());
+                                    logger.trace(String.format("The offset of the record we just sent is: %d", metadata.offset()));
                                 });
                     }
 
                     producer.flush();
 
-                    // only try to send back to client every 30 seconds so it isn't overwhelmed with messages
-                    Thread.sleep(10L);
+                    // Don't busy wait
+                    Thread.sleep(20L);
                 }
             } catch (Throwable throwable) {
-                System.out.printf("%s", throwable.getStackTrace());
+                logger.error(throwable.getMessage(), throwable);
             } finally {
                 producer.close();
             }

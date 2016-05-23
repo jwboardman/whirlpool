@@ -37,7 +37,7 @@ public class WeatherService extends BaseService {
         try {
             Thread.sleep(Long.MAX_VALUE);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage(), e);
         }
     }
 
@@ -92,7 +92,7 @@ public class WeatherService extends BaseService {
                     }
                 }
             } catch (Throwable throwable) {
-                throwable.printStackTrace();
+                logger.error(throwable.getMessage(), throwable);
             }
         }
 
