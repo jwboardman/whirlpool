@@ -18,6 +18,7 @@ Logging in with unique usernames on multiple browsers or tabs is not only allowe
 ## Install/Build/Start Zookeeper, Kafka, Services, and Server
 - For this script, do NOT click out of your terminal window until the WhirlpoolServer tab starts. Otherwise the script will act like it worked, but will actually fail.
 - Run ./maclocal_run.sh
+- `NOTE`: This will `REMOVE ANY EXISTING KAFA INSTALLATION` located at /Applications/kafka and /Applications/kafka_2.11-0.9.0.1 along with `ALL` data in /tmp/zookeeper and /tmp/kafka-logs!
 - This will download (if it isn't already) version 0.9.0.1 of Kafka (with Scala 2.11) that includes Zookeeper, install them, and configure them. It will then kick off the maven build that compiles
 and builds runnable deployed targets. Finally, it starts Zookeeper, then Kafka, then the services, and finally the server.
 
