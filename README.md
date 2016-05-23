@@ -10,8 +10,8 @@
 However, logging in with unique usernames on multiple browsers or tabs is not only allowed, it is coded for (users each have their own subscriptions) and encouraged.
 
 ## Prerequisites
-- add zookeeper.whirlpool, kafka.whirlpool, and whirlpool.local to your local hosts file. I recommend using your assigned IP instead of localhost or 127.0.0.1. For example, mine is
-192.168.1.100 zookeeper.whirlpool kafka.whirlpool whirlpool.local
+- add zookeeper.whirlpool, kafka.whirlpool, and local.whirlpool to your local hosts file. I recommend using your assigned IP instead of localhost or 127.0.0.1. For example, mine is
+192.168.1.100 zookeeper.whirlpool kafka.whirlpool local.whirlpool
 
 ## Build/Start App
 - For this script, do NOT click out of your terminal window until the WhirlpoolServer tab starts. Otherwise the script will act like it worked, but will actually fail.
@@ -22,7 +22,7 @@ However, logging in with unique usernames on multiple browsers or tabs is not on
 - Run ./maclocal_kill.sh
 
 ## Ports/Logs
-- http://whirlpool.local:8080/ - the app
+- http://local.whirlpool:8080/ - the app
 
 ## Known Issues
 - Logging out causes the error `WebSocket connection to 'ws://local.whirlpool:8080/wsticker' failed: Close received after close` to appear in the Chrome console. The websocket is in a
