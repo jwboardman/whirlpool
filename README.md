@@ -1,10 +1,11 @@
 # Recommended Development Setup
 - Mac OSX, latest version
 - JDK 8
+- Maven
 
 ## Notes
 - The only script I have created is for Mac OSX. Scripts for Windows and Linux could be made, I just didn't have the time to do it.
-- I'm using Java 8, Kafka 0.9.0.1, and Netty 4.0.32. The script will auto-install (and remove!) Zk/Kafka version 0.9.0.1, so if you have an existing installation, save it or don't use the script!
+- I'm using Java 8, Maven 3.3.9, Kafka 0.9.0.1, and Netty 4.0.32. The script will auto-install (and remove!) Zk/Kafka version 0.9.0.1, so if you have an existing installation, save it or don't use the script!
 - No database or security has been included because this is an example.
 - Use any username you like, and the password doesn't matter. Note that logging in multiple times with the same username is not allowed due to the simplistic "session" support with no true users or security present.
 It would not take a lot of work to add true sessions and allow multiple logins using the same username, with updates for a user sent to all the websockets that the user currently has open.
@@ -14,6 +15,8 @@ Logging in with unique usernames on multiple browsers or tabs is not only allowe
 - add zookeeper.whirlpool, kafka.whirlpool, and local.whirlpool to your local hosts file. I recommend using your assigned IP instead of localhost or 127.0.0.1. For example, mine is
 
 192.168.1.100 zookeeper.whirlpool kafka.whirlpool local.whirlpool
+
+- Make sure you have JAVA_HOME set
 
 ## Install/Build/Start Zookeeper, Kafka, Services, and Server
 - For this script, do NOT click out of your terminal window until the WhirlpoolServer tab starts. Otherwise the script will act like it worked, but will actually fail.
@@ -29,6 +32,17 @@ and builds runnable deployed targets. Finally, it starts Zookeeper, then Kafka, 
 
 ## Ports/Logs
 - http://local.whirlpool:8080/ - the app
+
+## About the UI
+Here's a screenshot:
+![Whirlpool Screen Shot](https://github.com/jboardman/whirlpool/screenshot.png?raw=true "Whirlpool")
+
+- To add a stock symbol, type it in (i.e. "GOOG") and click the A button under "Stock". To remove it, click the X.
+- To add a website to test whether it is up or down, type in the fully-qualified URL (i.e. http://facebook.com) and click the A button under "UpDown". To remove it, click the X.
+- To add a weather check, type the city,state in (i.e. "chicago,il") and click the A button under "City,State". To remove it, click the X.
+
+- Subscriptions survive page refresh and even login/logout (with the same userid) because they are stored with each service in memory. A "real" system
+would of course use a database.
 
 ## Known Issues
 - Logging out causes the error `WebSocket connection to 'ws://local.whirlpool:8080/wsticker' failed: Close received after close` to appear in the Chrome console. The websocket is in a
