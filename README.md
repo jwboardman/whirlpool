@@ -25,7 +25,7 @@ and builds runnable deployed targets. Finally, it starts Zookeeper, then Kafka, 
 ## Stop
 - This script shuts down everything, but you still have to close the tabs. I haven't found a way to do that yet.
 - Run ./maclocal_kill.sh
-- This will kill the services and server, then shut down Kafka, then shutdown Zookeeper. `NOTE`: It will also `remove` the kafka logs and zookeeper data in /tmp/zookeeper and /tmp/kafka-logs!!!
+- This will kill the services and server, then shut down Kafka, then shutdown Zookeeper. `NOTE`: It will also `REMOVE` the Kafka logs and Zookeeper data in /tmp/zookeeper and /tmp/kafka-logs!!!
 
 ## Ports/Logs
 - http://local.whirlpool:8080/ - the app
