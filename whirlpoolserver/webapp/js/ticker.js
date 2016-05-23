@@ -97,7 +97,7 @@ function startWebSocket(wsUrl) {
 
     websocket.onmessage = function (evt) {
         var data = evt.data;
-        writeToScreen('<span style="color: blue;">RESPONSE: ' + data + '</span>');
+        writeToScreen('RESPONSE: ' + data);
         var dataResponse = JSON.parse(data),
             option,
             selectBox,
@@ -181,7 +181,7 @@ function startWebSocket(wsUrl) {
     };
 
     websocket.onerror = function (evt) {
-        writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);
+        writeToScreen('ERROR: ' + evt.data);
     };
 }
 
