@@ -27,7 +27,7 @@ along with `ALL` data in /tmp/zookeeper and /tmp/kafka-logs!
 and builds runnable deployed targets. Finally, it starts the services, and finally the server.
 
 ## Stop
-- This script shuts down everything, but you still have to close the tabs. I haven't found a way to do that yet.
+- This script shuts down everything and closes all except the left most tab.
 - Run ./maclocal_kill.sh (or sudo ./linuxlocal_kill.sh)
 - This will kill the services and server, then shut down Kafka, then shutdown Zookeeper. `NOTE`: It will also `REMOVE` the Kafka logs and Zookeeper data in /tmp/zookeeper and /tmp/kafka-logs!!!
 
