@@ -24,4 +24,28 @@ rm -rf /tmp/kafka-logs
 echo "Removing Zookeeper data"
 rm -rf /tmp/zookeeper
 
+# find all terminal windows
+# loop through all terminal windows
+# find all tabs for the current terminal window
+# send command-shift-right arrow to skip the first tab, which we don't want to close
+# loop through tabs 2-n
+# send command-w to close the tab
+
+osascript <<EOD
+system attribute
+tell application "Terminal"
+  set allWindows to number of windows
+  repeat with i from 1 to allWindows
+    set allTabs to number of tabs of window i
+      tell application "System Events"
+        key code 124 using {shift down, command down}
+      end tell
+    repeat with j from 1 to allTabs - 1
+      tell application "System Events"
+        keystroke "w" using {command down}
+      end tell
+    end repeat
+  end repeat
+end tell
+EOD
 echo "done!"

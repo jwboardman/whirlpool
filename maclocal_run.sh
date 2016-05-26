@@ -6,12 +6,16 @@ function new_tab() {
 
   PATHDIR=$(pwd)
 
+  # do command-t to create a new terminal tab
+  # then run the script passed into the function to start the service or server
+  # finally, send command-shift-right arrow to move to the "next terminal on the right", which
+  # will wrap back to the terminal that is starting everything up
+
   osascript \
-    -e "system attribute" \
-    -e "tell application \"Terminal\"" \
+    -e 'system attribute' \
     -e "tell application \"System Events\" to keystroke \"t\" using {command down}" \
-    -e "do script \"printf '\\\e]1;$TAB_NAME\\\a'; sleep 1; cd $PATHDIR; $COMMAND\" in front window" \
-    -e "end tell" > /dev/null
+    -e "tell application \"Terminal\" to do script \"printf '\\\e]1;$TAB_NAME\\\a'; sleep 1; cd $PATHDIR; $COMMAND\" in front window" \
+    -e "tell application \"System Events\" to key code 124 using {shift down, command down}" > /dev/null
     sleep 5
 }
 
