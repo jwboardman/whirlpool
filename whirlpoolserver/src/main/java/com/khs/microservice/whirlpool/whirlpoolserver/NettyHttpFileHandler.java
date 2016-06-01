@@ -20,12 +20,12 @@ import java.util.regex.Pattern;
 
 public class NettyHttpFileHandler {
    private static final Logger logger = LoggerFactory.getLogger(NettyHttpFileHandler.class);
+   private static final Object _lock = new Object();
 
-   private static final Pattern INSECURE_URI = Pattern.compile(".*[<>&\"].*");
-   private static final Object  _lock = new Object();
-   private static final String  staticFileDir = "./webapp";
+   private Pattern insecureUri = Pattern.compile(".*[<>&\"].*");
+   private String staticFileDir = "./webapp";
 
-   protected static MimetypesFileTypeMap mimeTypesMap;
+   private static MimetypesFileTypeMap mimeTypesMap;
 
    // all methods static, no need for constructor
    public NettyHttpFileHandler() {
@@ -39,11 +39,27 @@ public class NettyHttpFileHandler {
             }
          }
       }
+
+      if (logger.isInfoEnabled()) {
+         logger.info("Base file directory is " + Paths.get(".").toAbsolutePath().normalize().toString());
+      }
    }
-   
-   public void sendFile(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
+
+   protected void setInsecureUri(Pattern insecureUri) {
+      this.insecureUri = insecureUri;
+   }
+
+   protected void setStaticFileDir(String staticFileDir) {
+      this.staticFileDir = staticFileDir;
+
+      if (logger.isInfoEnabled()) {
+         logger.info(String.format("New path to static files is %s", staticFileDir));
+      }
+   }
+
+   protected void sendFile(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
       // handle static files
-      final String uri = req.getUri();
+      final String uri = req.uri();
       final String path = sanitizeUri(uri);
 
       if (path == null) {
@@ -53,7 +69,7 @@ public class NettyHttpFileHandler {
 
       File file = new File(path);
       if ((!file.exists()) && "/index.html".equals(uri)) {
-         file = new File(sanitizeUri("/index.html"));
+         file = new File(convertUriToFullFileName("/index.html"));
       }
 
       if (!file.exists() || file.isHidden() || !file.exists() || file.isDirectory()) {
@@ -68,11 +84,11 @@ public class NettyHttpFileHandler {
 
       String contentType = mimeTypesMap.getContentType(file.getPath());
       if ("application/octet-stream".equals(contentType)) {
-         file = new File(sanitizeUri("/index.html"));
+         file = new File(convertUriToFullFileName("/index.html"));
       }
 
       // Cache Validation
-      String ifModifiedSince = req.headers().get(HttpHeaders.Names.IF_MODIFIED_SINCE);
+      String ifModifiedSince = req.headers().get(HttpHeaderNames.IF_MODIFIED_SINCE);
       if (ifModifiedSince != null && !ifModifiedSince.isEmpty()) {
          SimpleDateFormat dateFormatter = new SimpleDateFormat(WebSocketHelper.HTTP_DATE_FORMAT, Locale.US);
          Date ifModifiedSinceDate = dateFormatter.parse(ifModifiedSince);
@@ -82,7 +98,7 @@ public class NettyHttpFileHandler {
          long ifModifiedSinceDateSeconds = ifModifiedSinceDate.getTime() / 1000;
          long fileLastModifiedSeconds = file.lastModified() / 1000;
          if (ifModifiedSinceDateSeconds == fileLastModifiedSeconds) {
-            sendNotModified(ctx);
+            sendNotModified(ctx, req);
             return;
          }
       }
@@ -98,11 +114,11 @@ public class NettyHttpFileHandler {
       long fileLength = raf.length();
 
       HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-      HttpHeaders.setContentLength(response, fileLength);
+      HttpUtil.setContentLength(response, fileLength);
       setContentTypeHeader(response, file);
       WebSocketHelper.setDateAndCacheHeaders(response, file);
-      if (HttpHeaders.isKeepAlive(req)) {
-         response.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+      if (HttpUtil.isKeepAlive(req)) {
+         response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
       }
 
       // Write the initial line and the header.
@@ -139,24 +155,24 @@ public class NettyHttpFileHandler {
       });
 
       // Decide whether to close the connection or not.
-      if (!HttpHeaders.isKeepAlive(req)) {
+      if (!HttpUtil.isKeepAlive(req)) {
          // Close the connection when the whole content is written out.
          lastContentFuture.addListener(ChannelFutureListener.CLOSE);
       }
    }
 
-   public void sendRedirect(ChannelHandlerContext ctx, String newUri) {
+   protected void sendRedirect(ChannelHandlerContext ctx, String newUri) {
       FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.FOUND);
-      response.headers().set(HttpHeaders.Names.LOCATION, newUri);
+      response.headers().set(HttpHeaderNames.LOCATION, newUri);
 
       // Close the connection as soon as the error message is sent.
       ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
    }
 
-   public void sendError(ChannelHandlerContext ctx, HttpResponseStatus status) {
+   protected void sendError(ChannelHandlerContext ctx, HttpResponseStatus status) {
       FullHttpResponse response = new DefaultFullHttpResponse(
             HttpVersion.HTTP_1_1, status, Unpooled.copiedBuffer("Failure: " + status + "\r\n", CharsetUtil.UTF_8));
-      response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8");
+      response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=UTF-8");
 
       // Close the connection as soon as the error message is sent.
       ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
@@ -168,11 +184,19 @@ public class NettyHttpFileHandler {
     * @param ctx
     *            Context
     */
-   public void sendNotModified(ChannelHandlerContext ctx) {
+   protected void sendNotModified(ChannelHandlerContext ctx, FullHttpRequest req) {
       FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED);
       WebSocketHelper.setDateHeader(response);
+      HttpUtil.setContentLength(response, 0);
 
-      // Close the connection as soon as the error message is sent.
+      // if keepalive is set, don't close the connection. The zero content length header will tell the client
+      // that we're done
+      if (HttpUtil.isKeepAlive(req)) {
+         ctx.writeAndFlush(response);
+         return;
+      }
+
+      // If keepalive is not set, close the connection as soon as the message is sent.
       ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
    }
 
@@ -184,11 +208,11 @@ public class NettyHttpFileHandler {
     * @param file
     *            file to extract content type
     */
-   public void setContentTypeHeader(HttpResponse response, File file) {
-      response.headers().set(HttpHeaders.Names.CONTENT_TYPE, mimeTypesMap.getContentType(file.getPath()));
+   protected void setContentTypeHeader(HttpResponse response, File file) {
+      response.headers().set(HttpHeaderNames.CONTENT_TYPE, mimeTypesMap.getContentType(file.getPath()));
    }
 
-   public String sanitizeUri(String uri) {
+   protected String sanitizeUri(String uri) {
       // Decode the path.
       try {
          uri = URLDecoder.decode(uri, "UTF-8");
@@ -208,13 +232,20 @@ public class NettyHttpFileHandler {
       if (uri.contains(File.separator + '.') ||
             uri.contains('.' + File.separator) ||
             uri.charAt(0) == '.' || uri.charAt(uri.length() - 1) == '.' ||
-            INSECURE_URI.matcher(uri).matches()) {
+            insecureUri.matcher(uri).matches()) {
          return null;
       }
 
+      return convertUriToFullFileName(uri);
+   }
+
+   protected String convertUriToFullFileName(String uri) {
       // Convert to absolute path.
       String path = staticFileDir + uri;
-      logger.trace("current dir is " + Paths.get(".").toAbsolutePath().normalize().toString());
-      logger.trace("path to current file is '" + path + "'");
+      if (logger.isDebugEnabled()) {
+         logger.debug("Relative path from server to current file is '" + path + "'");
+      }
+
       return path;
-   }}
+   }
+}

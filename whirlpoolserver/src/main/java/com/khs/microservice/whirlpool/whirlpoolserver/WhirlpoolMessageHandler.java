@@ -32,7 +32,7 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
 
     private static final AtomicBoolean keepRunning = new AtomicBoolean(true);
 
-    protected final ConcurrentLinkedQueue<String> requestQueue = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<String> requestQueue = new ConcurrentLinkedQueue<>();
 
     private final ChannelGroup channels;
 
@@ -85,8 +85,8 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
      *
      * @author jwb
      */
-    class SendCommandsToKafkaCallable implements Callable<String> {
-        public SendCommandsToKafkaCallable() {
+    private class SendCommandsToKafkaCallable implements Callable<String> {
+        SendCommandsToKafkaCallable() {
         }
 
         @Override
@@ -108,23 +108,29 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
                         Message message = gson.fromJson(request, Message.class);
                         String topic = null;
 
-                        if (message.getType().equals("TickerCommand")) {
-                            topic = "stock-ticker-cmd";
-                        } else if (message.getType().equals("UpDownCommand")) {
-                            topic = "updown-cmd";
-                        } else if (message.getType().equals("WeatherCommand")) {
-                            topic = "weather-cmd";
+                        switch (message.getType()) {
+                            case "TickerCommand":
+                                topic = "stock-ticker-cmd";
+                                break;
+                            case "UpDownCommand":
+                                topic = "updown-cmd";
+                                break;
+                            case "WeatherCommand":
+                                topic = "weather-cmd";
+                                break;
                         }
 
                         if (topic != null) {
                             producer.send(new ProducerRecord<>(topic, request),
                                     (metadata, e) -> {
                                         if (e != null) {
-                                            e.printStackTrace();
+                                            logger.error(e.getMessage(), e);
                                         }
 
                                         logger.debug("The offset of the record we just sent is: " + metadata.offset());
                                     });
+                        } else {
+                            logger.info(String.format("Ignoring message with unknown type %s", message.getType()));
                         }
                     }
 
@@ -141,8 +147,8 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
         }
     }
 
-    class ReadIncomingCallable implements Callable<String> {
-        public ReadIncomingCallable() {
+    private class ReadIncomingCallable implements Callable<String> {
+        ReadIncomingCallable() {
         }
 
         @Override
@@ -197,7 +203,7 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
                     }
                 }
             } catch(Throwable t) {
-                t.printStackTrace();
+                logger.error(t.getMessage(), t);
             } finally {
                 consumer.close();
             }

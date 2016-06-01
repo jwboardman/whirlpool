@@ -17,7 +17,7 @@ public class WebSocketHelper {
     public static final String  HTTP_DATE_GMT_TIMEZONE = "GMT";
     public static final int     HTTP_CACHE_SECONDS = 60;
 
-    private static final AttributeKey<String> clientAttr = AttributeKey.<String>valueOf("client");
+    private static final AttributeKey<String> clientAttr = AttributeKey.valueOf("client");
 
     public static AttributeKey<String> getClientAttr() {
         return clientAttr;
@@ -29,15 +29,15 @@ public class WebSocketHelper {
                 HttpResponseStatus.OK,
                 Unpooled.copiedBuffer(text + "\r\n", CharsetUtil.UTF_8));
 
-        HttpHeaders.setContentLength(response, text.length());
-        response.headers().set(HttpHeaders.Names.CONTENT_TYPE, contentType);
+        HttpUtil.setContentLength(response, text.length());
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, contentType);
         setDateAndCacheHeaders(response, null);
         if (keepalive) {
-            response.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+            response.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
         }
 
         if (nettyCookie != null) {
-            response.headers().set(HttpHeaders.Names.SET_COOKIE, ServerCookieEncoder.STRICT.encode(nettyCookie));
+            response.headers().set(HttpHeaderNames.SET_COOKIE, ServerCookieEncoder.STRICT.encode(nettyCookie));
         }
         // Write the initial line and the header.
         channel.write(response);
@@ -59,11 +59,11 @@ public class WebSocketHelper {
 
         // Add cache headers
         time.add(Calendar.SECOND, HTTP_CACHE_SECONDS);
-        response.headers().set(HttpHeaders.Names.EXPIRES, dateFormatter.format(time.getTime()));
-        response.headers().set(HttpHeaders.Names.CACHE_CONTROL, "private, max-age=" + HTTP_CACHE_SECONDS);
+        response.headers().set(HttpHeaderNames.EXPIRES, dateFormatter.format(time.getTime()));
+        response.headers().set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + HTTP_CACHE_SECONDS);
 
         if (fileToCache != null) {
-            response.headers().set(HttpHeaders.Names.LAST_MODIFIED, dateFormatter.format(new Date(fileToCache.lastModified())));
+            response.headers().set(HttpHeaderNames.LAST_MODIFIED, dateFormatter.format(new Date(fileToCache.lastModified())));
         }
     }
 
@@ -95,7 +95,7 @@ public class WebSocketHelper {
      */
     public static void setDateHeader(HttpResponse response, Calendar time, SimpleDateFormat dateFormatter) {
         dateFormatter.setTimeZone(TimeZone.getTimeZone(WebSocketHelper.HTTP_DATE_GMT_TIMEZONE));
-        response.headers().set(HttpHeaders.Names.DATE, dateFormatter.format(time.getTime()));
+        response.headers().set(HttpHeaderNames.DATE, dateFormatter.format(time.getTime()));
     }
 
     public static DefaultCookie createCookie(String authCookieName, String domainName, String value, Long maxAge) {

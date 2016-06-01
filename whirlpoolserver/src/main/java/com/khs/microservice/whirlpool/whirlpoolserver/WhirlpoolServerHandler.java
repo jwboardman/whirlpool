@@ -32,14 +32,17 @@ import java.util.Set;
 public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> {
     private static final Logger logger = LoggerFactory.getLogger(WhirlpoolServerHandler.class);
     private static final String authCookieName = "whirlpool";
+    private static final String URI_LOGIN = "/login";
+    private static final String URI_LOGOUT = "/logout";
+    private static final String URI_EMPTY = "/";
     private static final Long   authCookieMaxAge = 1209600L;
 
-    protected WebSocketServerHandshaker handshaker;
+    private WebSocketServerHandshaker handshaker;
     private StringBuilder frameBuffer = null;
-    protected final NettyHttpFileHandler httpFileHandler = new NettyHttpFileHandler();
+    private final NettyHttpFileHandler httpFileHandler = new NettyHttpFileHandler();
     private static final ChannelGroup channels = new DefaultChannelGroup ("whirlpoolChannelGruop", GlobalEventExecutor.INSTANCE);
 
-    protected final WebSocketMessageHandler wsMessageHandler = new WhirlpoolMessageHandler(channels);
+    private final WebSocketMessageHandler wsMessageHandler = new WhirlpoolMessageHandler(channels);
 
     public WhirlpoolServerHandler() {
     }
@@ -126,14 +129,17 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
 
     protected void handleHttpRequest(ChannelHandlerContext ctx, FullHttpRequest req)
             throws Exception {
+        String uri = req.uri();
+        HttpMethod method = req.method();
+
         // Handle a bad request.
-        if (!req.getDecoderResult().isSuccess()) {
+        if (!req.decoderResult().isSuccess()) {
             httpFileHandler.sendError(ctx, HttpResponseStatus.BAD_REQUEST);
             return;
         }
 
         String cookieUserName = null;
-        String cookieString = req.headers().get(HttpHeaders.Names.COOKIE);
+        String cookieString = req.headers().get(HttpHeaderNames.COOKIE);
         if (cookieString != null) {
             Set<Cookie> cookies = ServerCookieDecoder.STRICT.decode(cookieString);
             if (!cookies.isEmpty()) {
@@ -149,7 +155,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
         final String userName = cookieUserName;
 
         // authenticate before upgrading
-        if (req.getMethod() == HttpMethod.POST) {
+        if (HttpMethod.POST.equals(method)) {
             DefaultCookie nettyCookie = null;
             String message = null;
             String host = req.headers().get("Host");
@@ -162,7 +168,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
                 host = host.substring(0, portIndex);
             }
 
-            if (req.getUri().equals("/login")) {
+            if (URI_LOGIN.equals(uri)) {
                 String username = null;
                 String password = null;
 
@@ -216,7 +222,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
                                 message = "{\"response\": \"fail\", \"reason\": \"Unauthorized, user '" + username + "' is already logged in\"}\r\n";
                                 FullHttpResponse response = new DefaultFullHttpResponse(
                                         HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED, Unpooled.copiedBuffer(message, CharsetUtil.UTF_8));
-                                response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8");
+                                response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=UTF-8");
                                 nettyCookie = WebSocketHelper.expireCookie(authCookieName, host);
 
                                 // Close the connection as soon as the error message is sent.
@@ -234,7 +240,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
                 } catch (Throwable t) {
                     logger.error(t.getMessage(), t);
                 }
-            } else if (req.getUri().equals("/logout")) {
+            } else if (URI_LOGOUT.equals(uri)) {
                 if (userName != null) {
                     for (Channel channel : channels) {
                         String key = channel.attr(WebSocketHelper.getClientAttr()).get();
@@ -254,18 +260,18 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
                 message = "{\"response\": \"fail\"}";
             }
 
-            WebSocketHelper.realWriteAndFlush(ctx.channel(), message, "application/json; charset=UTF-8", HttpHeaders.isKeepAlive(req), nettyCookie);
+            WebSocketHelper.realWriteAndFlush(ctx.channel(), message, "application/json; charset=UTF-8", HttpUtil.isKeepAlive(req), nettyCookie);
             return;
         }
 
         // Allow only GET methods.
-        if (req.getMethod() != HttpMethod.GET) {
+        if (!HttpMethod.GET.equals(method)) {
             httpFileHandler.sendError(ctx, HttpResponseStatus.FORBIDDEN);
             return;
         }
 
         // Send the demo page and favicon.ico
-        if ("/".equals(req.getUri())) {
+        if (URI_EMPTY.equals(uri)) {
             httpFileHandler.sendRedirect(ctx, "/index.html");
             return;
         }
@@ -296,8 +302,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
                 });
             }
         } else {
-            boolean handled = handleREST(ctx, req);
-            if (!handled) {
+            if (!handleREST(ctx, req)) {
                 httpFileHandler.sendFile(ctx, req);
             }
         }
