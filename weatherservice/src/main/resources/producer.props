@@ -5,4 +5,4 @@ batch.size=16384
 linger.ms=0
 key.serializer=org.apache.kafka.common.serialization.StringSerializer
 value.serializer=org.apache.kafka.common.serialization.StringSerializer
-block.on.buffer.full=true
+max.block.ms=999999

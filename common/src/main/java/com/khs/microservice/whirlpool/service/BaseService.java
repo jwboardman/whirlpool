@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 import com.khs.microservice.whirlpool.common.Command;
 import com.khs.microservice.whirlpool.common.CommandResponse;
 import com.khs.microservice.whirlpool.common.MessageConstants;
+import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -159,8 +160,20 @@ public abstract class BaseService {
                                 response.setErrorMessage("Command not recognized. " + record.value());
                             }
 
+                            try {
+                                consumer.commitSync();
+                            } catch (CommitFailedException e) {
+                                logger.error("commit failed", e);
+                            }
+
                             responseQueue.add(gson.toJson(response));
                         } else {
+                            try {
+                                consumer.commitSync();
+                            } catch (CommitFailedException e) {
+                                logger.error("commit failed", e);
+                            }
+
                             throw new IllegalStateException("Shouldn't be possible to get message on topic " + record.topic());
                         }
                     }
@@ -237,10 +250,11 @@ public abstract class BaseService {
                 while (keepRunning.get()) {
                     while ((message = responseQueue.poll()) != null) {
                         logger.debug(String.format("Sending message: '%s' to topic: '%s'", message, topic));
+
                         producer.send(new ProducerRecord<>(topic, message),
                                 (metadata, e) -> {
                                     if (e != null) {
-                                        e.printStackTrace();
+                                        logger.error(e.getMessage(), e);
                                     }
 
                                     logger.trace(String.format("The offset of the record we just sent is: %d", metadata.offset()));

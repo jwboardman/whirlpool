@@ -5,7 +5,7 @@
 
 ## Notes
 - The scripts I have created and tested for are for Mac OSX and Ubuntu (14.04 in particular). A script for Windows could be made, I just didn't have the time to do it.
-- I'm using Java 8, Maven 3.3.9, Kafka 0.9.0.1, and the just released Netty 4.1.0. The script will auto-install (and remove!) Zk/Kafka version 0.9.0.1, so if you have an existing installation, save it or don't use the script!
+- I'm using Java 8, Maven 3.3.9, Kafka 0.9.0.1, and Netty 4.1.3. The script will auto-install (and remove!) Zk/Kafka version 0.9.0.1, so if you have an existing installation, save it or don't use the script!
 - No database or security has been included because this is an example.
 - Use any username you like, and the password doesn't matter. Note that logging in multiple times with the same username is not allowed due to the simplistic "session" support with no true users or security present.
 It would not take a lot of work to add true sessions and allow multiple logins using the same username, with updates for a user sent to all the websockets that the user currently has open.

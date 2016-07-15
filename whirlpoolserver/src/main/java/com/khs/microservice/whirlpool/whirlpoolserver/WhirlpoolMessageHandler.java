@@ -10,6 +10,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -181,6 +182,12 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
                             case "stock-ticker":
                             case "weather":
                             case "updown":
+                                try {
+                                    consumer.commitSync();
+                                } catch (CommitFailedException e) {
+                                    logger.error("commit failed", e);
+                                }
+
                                 boolean channelFound = false;
                                 Message message = gson.fromJson(record.value(), Message.class);
                                 for (Channel channel : channels) {
@@ -198,6 +205,12 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
                                 break;
 
                             default:
+                                try {
+                                    consumer.commitSync();
+                                } catch (CommitFailedException e) {
+                                    logger.error("commit failed", e);
+                                }
+
                                 throw new IllegalStateException("Shouldn't be possible to get message on topic " + record.topic());
                         }
                     }
