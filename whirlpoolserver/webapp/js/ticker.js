@@ -6,7 +6,7 @@ function init() {
     // auto-click login on enter only if the login div is visible
     document.onkeydown = function (evt) {
         var keyCode = evt ? (evt.which ? evt.which : evt.keyCode) : event.keyCode;
-        if (keyCode == 13) {
+        if (keyCode === 13) {
             if (!document.getElementById("logindiv").classList.contains("hide")) {
                 document.getElementById('login').click();
                 return false;
@@ -240,10 +240,10 @@ function ajax(options) {
     }
 
     xmlhttp.onreadystatechange = function() {
-        if (xmlhttp.readyState == XMLHttpRequest.DONE ) {
-            if (xmlhttp.status == 200) {
+        if (xmlhttp.readyState === XMLHttpRequest.DONE ) {
+            if (xmlhttp.status === 200) {
                 options.success(xmlhttp.responseText);
-            } else if (xmlhttp.status == 400) {
+            } else if (xmlhttp.status === 400) {
                 options.error('There was an error 400');
             } else if (xmlhttp.responseText) {
                 options.error(xmlhttp.responseText);
@@ -255,7 +255,7 @@ function ajax(options) {
 
     xmlhttp.open(options.type, options.url, true);
 
-    if (options.type == 'POST') {
+    if (options.type === 'POST') {
         xmlhttp.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
         xmlhttp.send(JSON.stringify(options.data));
     } else {
@@ -286,10 +286,10 @@ function getCookie(cname) {
     var ca = document.cookie.split(';');
     for(var i = 0; i <ca.length; i++) {
         var c = ca[i];
-        while (c.charAt(0)==' ') {
+        while (c.charAt(0) === ' ') {
             c = c.substring(1);
         }
-        if (c.indexOf(name) == 0) {
+        if (c.indexOf(name) === 0) {
             return c.substring(name.length,c.length);
         }
     }
