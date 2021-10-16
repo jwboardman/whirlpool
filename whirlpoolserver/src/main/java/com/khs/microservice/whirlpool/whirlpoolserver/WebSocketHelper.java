@@ -3,8 +3,6 @@ package com.khs.microservice.whirlpool.whirlpoolserver;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.*;
-import io.netty.handler.codec.http.cookie.DefaultCookie;
-import io.netty.handler.codec.http.cookie.ServerCookieEncoder;
 import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 
@@ -29,7 +27,7 @@ public class WebSocketHelper {
                 HttpResponseStatus.OK,
                 Unpooled.copiedBuffer(text + "\r\n", CharsetUtil.UTF_8));
 
-        HttpUtil.setContentLength(response, text.length());
+        HttpHeaderUtil.setContentLength(response, text.length());
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, contentType);
         setDateAndCacheHeaders(response, null);
         if (keepalive) {
@@ -37,7 +35,7 @@ public class WebSocketHelper {
         }
 
         if (nettyCookie != null) {
-            response.headers().set(HttpHeaderNames.SET_COOKIE, ServerCookieEncoder.STRICT.encode(nettyCookie));
+            response.headers().set(HttpHeaderNames.SET_COOKIE, ServerCookieEncoder.encode(nettyCookie));
         }
         // Write the initial line and the header.
         channel.write(response);

@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.*;
@@ -123,13 +124,13 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
 
                         if (topic != null) {
                             producer.send(new ProducerRecord<>(topic, request),
-                                    (metadata, e) -> {
-                                        if (e != null) {
-                                            logger.error(e.getMessage(), e);
-                                        }
+                                (metadata, e) -> {
+                                    if (e != null) {
+                                        logger.error(e.getMessage(), e);
+                                    }
 
-                                        logger.debug("The offset of the record we just sent is: " + metadata.offset());
-                                    });
+                                    logger.debug("The offset of the record we just sent is: " + metadata.offset());
+                                });
                         } else {
                             logger.info(String.format("Ignoring message with unknown type %s", message.getType()));
                         }
@@ -168,7 +169,7 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
             try {
                 while (keepRunning.get()) {
                     // read records with a short timeout. If we time out, we don't really care.
-                    ConsumerRecords<String, String> records = consumer.poll(200);
+                    ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(200));
                     if (records.count() == 0) {
                         timeouts++;
                     } else {

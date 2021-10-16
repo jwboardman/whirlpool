@@ -1,29 +1,26 @@
 # Recommended Development Setup
-- Mac OSX, latest version or Ubuntu 14.04 (I have mine running in a container inside Paralells)
+- Mac OSX, latest version or Ubuntu 20.04 (I have mine running in a container inside Parallels)
 - JDK 8
 - Maven
 
 ## Notes
 - The scripts I have created and tested for are for Mac OSX and Ubuntu (14.04 in particular). A script for Windows could be made, I just didn't have the time to do it.
-- I'm using Java 8, Maven 3.3.9, Kafka 0.9.0.1, and Netty 4.1.3. The script will auto-install (and remove!) Zk/Kafka version 0.9.0.1, so if you have an existing installation, save it or don't use the script!
+- I'm using Java 8, Maven 3.8.1, Kafka 3.0.0, and Netty 4.1.69. The script will auto-install (and remove!) Zk/Kafka version 3.0.0, so if you have an existing installation, save it or don't use the script!
+- localhost is used to bypass Kafka 3.0.0's desire to look up your external hostname
 - No database or security has been included because this is an example.
 - Use any username you like, and the password doesn't matter. Note that logging in multiple times with the same username is not allowed due to the simplistic "session" support with no true users or security present.
 It would not take a lot of work to add true sessions and allow multiple logins using the same username, with updates for a user sent to all the websockets that the user currently has open.
 Logging in with unique usernames on multiple browsers or tabs is not only allowed, it is coded for (users each have their own subscriptions) and encouraged.
 
 ## Prerequisites
-- add zookeeper.whirlpool, kafka.whirlpool, and local.whirlpool to your local hosts file. I recommend using your assigned IP instead of localhost or 127.0.0.1. For example, mine is
-
-192.168.1.100 zookeeper.whirlpool kafka.whirlpool local.whirlpool
-
 - Make sure you have JAVA_HOME set
 
 ## Install/Build/Start Zookeeper, Kafka, Services, and Server
 - For this script, do NOT click out of your terminal window until the WhirlpoolServer tab starts. Otherwise the script will act like it worked, but will actually fail.
 - Run ./maclocal_run.sh (or sudo ./linuxlocal_run.sh)
-- `NOTE`: This will `REMOVE ANY EXISTING KAFKA INSTALLATION` located at /Applications/kafka and /Applications/kafka_2.11-0.9.0.1 (or /opt/kafka and /opt/kafka_2.11-0.9.0.1 for linux)
+- `NOTE`: This will `REMOVE ANY EXISTING KAFKA INSTALLATION` located at /Applications/kafka and /Applications/kafka_2.13-3.0.0 (or /opt/kafka and /opt/kafka_2.13-3.0.0 for linux)
 along with `ALL` data in /tmp/zookeeper and /tmp/kafka-logs!
-- This will download (if it isn't already) version 0.9.0.1 of Kafka (with Scala 2.11) that includes Zookeeper, install them, and configure them, and starts them. It will then kick off the maven build that compiles
+- This will download (if it isn't already) version 3.0.0 of Kafka (with Scala 2.13) that includes Zookeeper, install them, and configure them, and starts them. It will then kick off the maven build that compiles
 and builds runnable deployed targets. Finally, it starts the services, and finally the server.
 
 ## Stop
@@ -32,7 +29,7 @@ and builds runnable deployed targets. Finally, it starts the services, and final
 - This will kill the services and server, then shut down Kafka, then shutdown Zookeeper. `NOTE`: It will also `REMOVE` the Kafka logs and Zookeeper data in /tmp/zookeeper and /tmp/kafka-logs!!!
 
 ## Ports/Logs
-- http://local.whirlpool:8080/ - the app
+- http://localhost:8080/ - the app
 
 ## About the UI
 Here's a screenshot:

@@ -29,7 +29,7 @@ function authenticated(username) {
     document.getElementById("maindiv").classList.remove("hide");
 }
 
-function login(username, password) {
+async function login(username, password) {
     var success = function(data) {
         authenticated(username);
     };
@@ -44,13 +44,22 @@ function login(username, password) {
     };
 
     // This is now called when the user logs in
-    ajax({
-        type: "POST",
-        url: '/login',
-        data: {user: username, password: password},
-        success: success,
-        error: error
+    const jsonBody = JSON.stringify({user: username, password: password});
+    const response = await fetch('/login', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json;charset=utf-8',
+        'Content-Length': jsonBody.length
+      },
+      body: jsonBody
     });
+
+    if (response.status === 200) {
+      success(await response.json());
+    } else {
+      error({errorCode: response.status});
+    }
 }
 
 function logout() {
@@ -97,23 +106,26 @@ function startWebSocket(wsUrl) {
 
     websocket.onmessage = function (evt) {
         var data = evt.data;
-        writeToScreen('RESPONSE: ' + data);
         var dataResponse = JSON.parse(data),
+            subData,
             option,
             selectBox,
             propertyName;
+
+        writeToScreen('RESPONSE: ' + data);
 
         if (dataResponse.type === 'TickerResponse') {
             selectBox = document.getElementById("stocklist");
 
             for (propertyName in dataResponse['subscriptionData']) {
                 if (dataResponse['subscriptionData'].hasOwnProperty(propertyName)) {
+                    subData = dataResponse['subscriptionData'][propertyName].split('\\\"').join('"');
                     option = findSelectOption(selectBox, propertyName + ":");
                     if (option) {
-                        option.text = propertyName + ': $' + dataResponse['subscriptionData'][propertyName];
+                        option.text = propertyName + ': $' + subData;
                     } else {
                         option = document.createElement("option");
-                        option.text = propertyName + ': $' + dataResponse['subscriptionData'][propertyName];
+                        option.text = propertyName + ': $' + subData;
                         selectBox.add(option);
                     }
                 }
@@ -124,11 +136,12 @@ function startWebSocket(wsUrl) {
             for (propertyName in dataResponse['subscriptionData']) {
                 if (dataResponse['subscriptionData'].hasOwnProperty(propertyName)) {
                     option = findSelectOption(selectBox, propertyName + ":");
+                    subData = dataResponse['subscriptionData'][propertyName].split('\\\"').join('"');
                     if (option) {
-                        option.text = propertyName + ': ' + dataResponse['subscriptionData'][propertyName];
+                        option.text = propertyName + ': ' + subData;
                     } else {
                         option = document.createElement("option");
-                        option.text = propertyName + ': ' + dataResponse['subscriptionData'][propertyName];
+                        option.text = propertyName + ': ' + subData;
                         selectBox.add(option);
                     }
                 }
@@ -140,14 +153,15 @@ function startWebSocket(wsUrl) {
 
             for (propertyName in dataResponse['subscriptionData']) {
                 if (dataResponse['subscriptionData'].hasOwnProperty(propertyName)) {
-                    weatherData = JSON.parse(dataResponse['subscriptionData'][propertyName]);
+                    subData = dataResponse['subscriptionData'][propertyName].split('\\\"').join('"');
+                    weatherData = JSON.parse(subData);
 
                     option = findSelectOption(selectBox, propertyName + ":");
                     if (option) {
                         if (weatherData["result"] === "notfound") {
                             option.text = propertyName + ': not found';
                         } else {
-                            option.text = propertyName + ': temp=' + weatherData["temp"] + ', conditions=' + weatherData["text"];
+                            option.text = propertyName + ': ' + JSON.stringify(weatherData);
                         }
                     } else {
                         option = document.createElement("option");
@@ -155,7 +169,7 @@ function startWebSocket(wsUrl) {
                         if (weatherData["result"] === "notfound") {
                             option.text = propertyName + ': not found';
                         } else {
-                            option.text = propertyName + ': temp=' + weatherData["temp"] + ', conditions=' + weatherData["text"];
+                            option.text = propertyName + ': ' + JSON.stringify(weatherData);
                         }
 
                         selectBox.add(option);

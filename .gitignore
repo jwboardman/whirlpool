@@ -73,6 +73,10 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+# VS Code History
+.history/
+.vscode/
+
 ### Eclipse template
 
 .metadata

@@ -10,11 +10,7 @@ import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.handler.codec.http.*;
-import io.netty.handler.codec.http.cookie.Cookie;
-import io.netty.handler.codec.http.cookie.DefaultCookie;
-import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 import io.netty.handler.codec.http.multipart.Attribute;
-import io.netty.handler.codec.http.multipart.DefaultHttpDataFactory;
 import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
 import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import io.netty.handler.codec.http.websocketx.*;
@@ -25,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -67,7 +62,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+    protected void messageReceived(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof FullHttpRequest) {
             this.handleHttpRequest(ctx, (FullHttpRequest) msg);
         } else if (msg instanceof WebSocketFrame) {
@@ -139,9 +134,10 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
         }
 
         String cookieUserName = null;
-        String cookieString = req.headers().get(HttpHeaderNames.COOKIE);
-        if (cookieString != null) {
-            Set<Cookie> cookies = ServerCookieDecoder.STRICT.decode(cookieString);
+        CharSequence cookieCharSeq = req.headers().get(HttpHeaderNames.COOKIE);
+        if (cookieCharSeq != null) {
+            String cookieString = cookieCharSeq.toString();
+            Set<Cookie> cookies = ServerCookieDecoder.decode(cookieString);
             if (!cookies.isEmpty()) {
                 // Reset the cookies if necessary.
                 for (Cookie cookie: cookies) {
@@ -158,7 +154,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
         if (HttpMethod.POST.equals(method)) {
             DefaultCookie nettyCookie = null;
             String message = null;
-            String host = req.headers().get("Host");
+            String host = req.headers().get("Host").toString();
             if (host == null) {
                 host = "127.0.0.1";
             }
@@ -173,14 +169,15 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
                 String password = null;
 
                 try {
-                    HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(false), req);
+                    HttpPostRequestDecoder decoder = new HttpPostRequestDecoder(req);
                     Map<String, String> attributes = new HashMap<>();
-                    List<InterfaceHttpData> datas = decoder.getBodyHttpDatas();
-                    for (InterfaceHttpData data : datas) {
-                        if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.Attribute) {
+                    while (decoder.hasNext()) {
+                      InterfaceHttpData httpData = decoder.next();
+                        if (httpData.getHttpDataType() == InterfaceHttpData.HttpDataType.Attribute) {
                             try {
+                                Attribute data = (Attribute)httpData;
                                 String name = data.getName();
-                                String value = ((Attribute) data).getString();
+                                String value = data.getString();
                                 attributes.put(name, value);
                             } catch (IOException e) {
                                 logger.error("Error getting HTTP attribute from POST request", e);
@@ -195,21 +192,19 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
                         password = attributes.get("password");
                     } else {
                         ByteBuf content = req.content();
-                        if (content.isReadable()) {
-                            String json = content.toString(CharsetUtil.UTF_8);
-                            try {
-                                JsonElement jElement = new JsonParser().parse(json);
-                                JsonObject jObject = jElement.getAsJsonObject();
-                                if (jObject.has("user")) {
-                                    username = jObject.get("user").toString().replaceAll("\"", "");
-                                }
-
-                                if (jObject.has("password")) {
-                                    password = jObject.get("password").toString().replaceAll("\"", "");
-                                }
-                            } catch (JsonSyntaxException e) {
-                                // not JSON
+                        String json = content.toString(CharsetUtil.UTF_8);
+                        try {
+                            JsonElement jElement = JsonParser.parseString(json);
+                            JsonObject jObject = jElement.getAsJsonObject();
+                            if (jObject.has("user")) {
+                                username = jObject.get("user").toString().replaceAll("\"", "");
                             }
+
+                            if (jObject.has("password")) {
+                                password = jObject.get("password").toString().replaceAll("\"", "");
+                            }
+                        } catch (JsonSyntaxException e) {
+                            // not JSON
                         }
                     }
 
@@ -222,7 +217,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
                                 message = "{\"response\": \"fail\", \"reason\": \"Unauthorized, user '" + username + "' is already logged in\"}\r\n";
                                 FullHttpResponse response = new DefaultFullHttpResponse(
                                         HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED, Unpooled.copiedBuffer(message, CharsetUtil.UTF_8));
-                                response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=UTF-8");
+                                response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json; charset=UTF-8");
                                 nettyCookie = WebSocketHelper.expireCookie(authCookieName, host);
 
                                 // Close the connection as soon as the error message is sent.
@@ -260,7 +255,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
                 message = "{\"response\": \"fail\"}";
             }
 
-            WebSocketHelper.realWriteAndFlush(ctx.channel(), message, "application/json; charset=UTF-8", HttpUtil.isKeepAlive(req), nettyCookie);
+            WebSocketHelper.realWriteAndFlush(ctx.channel(), message, "application/json; charset=UTF-8", HttpHeaderUtil.isKeepAlive(req), nettyCookie);
             return;
         }
 
@@ -277,29 +272,32 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
         }
 
         // check for websocket upgrade request
-        String upgradeHeader = req.headers().get("Upgrade");
-        if (upgradeHeader != null && "websocket".equalsIgnoreCase(upgradeHeader)) {
-            // Handshake. Ideally you'd want to configure your websocket uri
-            String url = "ws://" + req.headers().get("Host") + "/wsticker";
-            WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(url, null, false);
-            handshaker = wsFactory.newHandshaker(req);
-            if (handshaker == null) {
-                WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(ctx.channel());
-            } else {
-                ChannelFuture future = handshaker.handshake(ctx.channel(), req);
-                future.addListener(new ChannelFutureListener() {
-                    @Override
-                    public void operationComplete(ChannelFuture future) throws Exception {
-                        if (!future.isSuccess()) {
-                            logger.error("Can't handshake ", future.cause());
-                            return;
-                        }
+        CharSequence upgradeHeaderCharSeq = req.headers().get("Upgrade");
+        if (upgradeHeaderCharSeq != null) {
+            String upgradeHeader = upgradeHeaderCharSeq.toString();
+            if ("websocket".equalsIgnoreCase(upgradeHeader)) {
+              // Handshake. Ideally you'd want to configure your websocket uri
+              String url = "ws://" + req.headers().get("Host") + "/wsticker";
+              WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(url, null, false);
+              handshaker = wsFactory.newHandshaker(req);
+              if (handshaker == null) {
+                  WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(ctx.channel());
+              } else {
+                  ChannelFuture future = handshaker.handshake(ctx.channel(), req);
+                  future.addListener(new ChannelFutureListener() {
+                      @Override
+                      public void operationComplete(ChannelFuture future) throws Exception {
+                          if (!future.isSuccess()) {
+                              logger.error("Can't handshake ", future.cause());
+                              return;
+                          }
 
-                        logger.info(String.format("Authorized, websocket upgrade complete, adding client '%s' to channel and saving channel", userName));
-                        future.channel().attr(WebSocketHelper.getClientAttr()).set(userName);
-                        channels.add(future.channel());
-                    }
-                });
+                          logger.info(String.format("Authorized, websocket upgrade complete, adding client '%s' to channel and saving channel", userName));
+                          future.channel().attr(WebSocketHelper.getClientAttr()).set(userName);
+                          channels.add(future.channel());
+                      }
+                  });
+              }
             }
         } else {
             if (!handleREST(ctx, req)) {

@@ -1,8 +1,5 @@
 package com.khs.microservice.whirlpool.stockservice;
 
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import com.google.gson.Gson;
 import com.khs.microservice.whirlpool.common.DataResponse;
 import com.khs.microservice.whirlpool.common.MessageConstants;
@@ -24,8 +21,8 @@ import java.util.Map;
  * This producer will send stock updates to the stock-ticker topic.
  */
 public class StockService extends BaseService {
-    private static final String STOCK_URL_START = "http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20yahoo.finance.quotes%20where%20symbol%20in%20(";
-    private static final String STOCK_URL_END = ")%0A%09%09&env=http%3A%2F%2Fdatatables.org%2Falltables.env&format=json";
+    private static final String STOCK_URL_START = "https://finance.yahoo.com/quote/";
+    private static final String STOCK_URL_END = "?p=";
 
     public static void main(String[] args) throws IOException {
         StockService service = new StockService();
@@ -49,64 +46,31 @@ public class StockService extends BaseService {
     @Override
     protected void collectData(Gson gson, String user, List<String> subscriptions) {
         Map<String, String> subscriptionData = new HashMap<>();
-        String url = STOCK_URL_START;
-        boolean first = true;
         for (String subscription : subscriptions) {
-            if (first) {
-                first = false;
-            } else {
-                url += "%2C";
-            }
-
-            url += "%22" + subscription + "%22";
-        }
-
-        url += STOCK_URL_END;
-
-        try (CloseableHttpClient httpClient = HttpClientHelper.buildHttpClient()) {
-            HttpUriRequest query = RequestBuilder.get()
-                    .setUri(url)
-                    .build();
-            try (CloseableHttpResponse queryResponse = httpClient.execute(query)) {
-                HttpEntity entity = queryResponse.getEntity();
-                if (entity != null) {
-                    String data = EntityUtils.toString(entity);
-                    JsonObject jsonObject = JsonObject.readFrom(data);
-                    if (jsonObject != null) {
-                        JsonValue jsonValue = jsonObject.get("query");
-                        if (jsonValue != null) {
-                            jsonObject = jsonValue.asObject();
-                            jsonObject = jsonObject.get("results").asObject();
-                            if (jsonObject.get("quote").isArray()) {
-                                JsonArray jsonArray = jsonObject.get("quote").asArray();
-                                for (int i = 0; i < jsonArray.size(); i++) {
-                                    jsonObject = jsonArray.get(i).asObject();
-                                    String symbol = jsonObject.get("Symbol").asString();
-                                    jsonValue = jsonObject.get("LastTradePriceOnly");
-                                    if (!jsonValue.isNull()) {
-                                        String price = jsonValue.asString();
-                                        subscriptionData.put(symbol, price);
-                                    } else {
-                                        subscriptionData.put(symbol, "{\"result\":\"notfound\"}");
-                                    }
-                                }
-                            } else {
-                                jsonObject = jsonObject.get("quote").asObject();
-                                String symbol = jsonObject.get("Symbol").asString();
-                                jsonValue = jsonObject.get("LastTradePriceOnly");
-                                if (!jsonValue.isNull()) {
-                                    String price = jsonValue.asString();
-                                    subscriptionData.put(symbol, price);
-                                } else {
-                                    subscriptionData.put(symbol, "{\"result\":\"notfound\"}");
+            String url = STOCK_URL_START;
+            url += subscription + STOCK_URL_END + subscription;
+            try (CloseableHttpClient httpClient = HttpClientHelper.buildHttpClient()) {
+                HttpUriRequest query = RequestBuilder.get().setUri(url).build();
+                try (CloseableHttpResponse queryResponse = httpClient.execute(query)) {
+                    HttpEntity entity = queryResponse.getEntity();
+                    if (entity != null) {
+                        String data = EntityUtils.toString(entity);
+                        int priceOffset = data.indexOf("regularMarketPrice");
+                        if (priceOffset > -1) {
+                            int fmtOffset = data.indexOf("fmt", priceOffset);
+                            if (fmtOffset > -1) {
+                                int closeBracketOffset = data.indexOf("}", fmtOffset);
+                                if (closeBracketOffset > -1) {
+                                    String price = data.substring(fmtOffset + 6, closeBracketOffset - 1);
+                                    subscriptionData.put(subscription, price);
                                 }
                             }
                         }
                     }
                 }
+            } catch (Throwable throwable) {
+                logger.error(throwable.getMessage(), throwable);
             }
-        } catch (Throwable throwable) {
-            logger.error(throwable.getMessage(), throwable);
         }
 
         DataResponse response = new DataResponse();
