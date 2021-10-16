@@ -22,6 +22,7 @@ package com.khs.microservice.whirlpool.whirlpoolserver;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -34,6 +35,7 @@ import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,16 +60,19 @@ public final class WhirlpoolServer {
              @Override
              public void initChannel(SocketChannel ch) throws Exception {
                 ChannelPipeline p = ch.pipeline();
-                p.addLast("encoder", new HttpResponseEncoder());
-                p.addLast("decoder", new HttpRequestDecoder());
+                p.addLast("http-decoder", new HttpRequestDecoder());
+                p.addLast("http-encoder", new HttpResponseEncoder());
+                p.addLast("http-aggregator", new HttpObjectAggregator(65536));
                 p.addLast("stringDecoder", new StringDecoder(CharsetUtil.UTF_8));
                 p.addLast("stringEncoder", new StringEncoder(CharsetUtil.UTF_8));
-                p.addLast("aggregator", new HttpObjectAggregator(65536));
+                p.addLast("http-chunked", new ChunkedWriteHandler());
                 p.addLast("handler", new WhirlpoolServerHandler());
              }
           });
 
          // Start the server.
+         b.option(ChannelOption.SO_BACKLOG, 1024);
+         b.childOption(ChannelOption.SO_KEEPALIVE, true);
          ChannelFuture f = b.bind(PORT).sync();
          logger.info("Whirlpool Server started");
 

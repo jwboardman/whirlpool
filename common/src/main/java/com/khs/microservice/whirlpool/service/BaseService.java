@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -109,7 +110,7 @@ public abstract class BaseService {
             try {
                 while (keepRunning.get()) {
                     // read records with a short timeout. If we time out, we don't really care.
-                    ConsumerRecords<String, String> records = consumer.poll(200);
+                    ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(200));
                     if (records.count() == 0) {
                         timeouts++;
                     } else {
@@ -211,8 +212,8 @@ public abstract class BaseService {
                         }
                     }
 
-                    // only collect data every 10 seconds so remote services aren't overwhelmed with messages
-                    Thread.sleep(10000L);
+                    // only collect data every 30 seconds so remote services aren't overwhelmed with messages
+                    Thread.sleep(30000L);
                 }
             } catch (Throwable throwable) {
                 logger.error(throwable.getMessage(), throwable);
