@@ -1,6 +1,10 @@
-import React, { useContext } from 'react';
+import React, { useCallback, useContext, useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import AppContext from '../store/app-context';
+import Navigator from './Navigator';
 import ServiceList from './ServiceList';
+import Modal from './Modal';
 
 import { writeToScreen } from '../common/common';
 
@@ -8,113 +12,98 @@ import styles from './Main.module.css';
 
 const Main = () => {
   const ctx = useContext(AppContext);
+  const [ modalVisible, setModalVisible ] = useState(null);
 
-  function doSend(message) {
+  const doSend = useCallback(message => {
     if (ctx.websocket) {
       ctx.websocket.send(message);
       writeToScreen("SENT: " + message);
     } else {
       ctx.logoutHandler();
     }
-  }
+  }, [ctx]);
 
-  function sendStockAdd(e) {
-    e.preventDefault();
-    const symbol = document.getElementById('data').value;
-    var message = '{"type":"TickerCommand", "id":"' + ctx.clientName + '", "command":"add", "subscription":"' + symbol + '"}';
-    doSend(message);
-  }
+  const sendStockAdd = useCallback((e, data) => {
+    if (e) {
+      e.preventDefault();
+    }
+    setModalVisible(null);
+    if (data) {
+      var message = '{"type":"TickerCommand", "id":"' + ctx.clientName + '", "command":"add", "subscription":"' + data + '"}';
+      doSend(message);
+    }
+  }, [doSend, ctx.clientName]);
 
-  function sendStockRemove(e) {
-    e.preventDefault();
-    const symbol = document.getElementById('data').value;
-    var message = '{"type":"TickerCommand", "id":"' + ctx.clientName + '", "command":"remove", "subscription":"' + symbol + '"}';
-    doSend(message);
-  }
+  const sendUpDownAdd = useCallback((e, data) => {
+    if (e) {
+      e.preventDefault();
+    }
+    setModalVisible(null);
+    if (data) {
+      var message = '{"type":"UpDownCommand", "id":"' + ctx.clientName + '", "command":"add", "subscription":"' + data + '"}';
+      doSend(message);
+    }
+  }, [doSend, ctx.clientName]);
 
-  function sendUpDownAdd(e) {
-    e.preventDefault();
-    const url = document.getElementById('data').value;
-    var message = '{"type":"UpDownCommand", "id":"' + ctx.clientName + '", "command":"add", "subscription":"' + url + '"}';
-    doSend(message);
-  }
-
-  function sendUpDownRemove(e) {
-    e.preventDefault();
-    const url = document.getElementById('data').value;
-    var message = '{"type":"UpDownCommand", "id":"' + ctx.clientName + '", "command":"remove", "subscription":"' + url + '"}';
-    doSend(message);
-  }
-
-  function sendWeatherAdd(e) {
-    e.preventDefault();
-    const cityState = document.getElementById('data').value;
-    var message = '{"type":"WeatherCommand", "id":"' + ctx.clientName + '", "command":"add", "subscription":"' + cityState + '"}';
-    doSend(message);
-  }
-
-  function sendWeatherRemove(e) {
-    e.preventDefault();
-    const cityState = document.getElementById('data').value;
-    var message = '{"type":"WeatherCommand", "id":"' + ctx.clientName + '", "command":"remove", "subscription":"' + cityState + '"}';
-    doSend(message);
-  }
+  const sendWeatherAdd = useCallback((e, data) => {
+    if (e) {
+      e.preventDefault();
+    }
+    setModalVisible(null);
+    if (data) {
+      var message = '{"type":"WeatherCommand", "id":"' + ctx.clientName + '", "command":"add", "subscription":"' + data + '"}';
+      doSend(message);
+    }
+  }, [doSend, ctx.clientName]);
 
   return (
     <>
-      <p id="current_user">Logged in User: {ctx.clientName}</p>
-
-      <div style={{display: "flex", justifyContent: "center"}}>
-        <div style={{display: "flex", flexDirection: "column"}}>
-          Data
-          <input style={{marginRight: 25}} id="data" type="text" size="40" />
-        </div>
-        <div style={{display: "flex", flexDirection: "column"}}>
-          Stock
-          <div style={{display: "flex", flexDirection: "row"}}>
-            <input style={{marginRight: 5}} id="add_stock" className={styles.plain} type="button" value="A" onClick={sendStockAdd} />
-            <input style={{marginRight: 20}} id="remove_stock" className={styles.red} type="button" value="X" onClick={sendStockRemove} />
-          </div>
-        </div>
-        <div style={{display: "flex", flexDirection: "column"}}>
-          <div style={{marginRight: 15}}>UpDown</div>
-          <div style={{display: "flex", flexDirection: "row"}}>
-            <input style={{marginRight: 5}} id="add_updown" type="button" className={styles.plain} value="A" onClick={sendUpDownAdd} />
-            <input style={{marginRight: 20}} id="remove_updown" className={styles.red} type="button" value="X" onClick={sendUpDownRemove} />
-          </div>
-        </div>
-        <div style={{display: "flex", flexDirection: "column"}}>
-          Zip Code
-          <div style={{display: "flex", flexDirection: "row"}}>
-            <input id="add_weather" className={styles.plain} type="button" value="A" onClick={sendWeatherAdd} />
-            <input id="remove_weather" className={styles.red} type="button" value="X" onClick={sendWeatherRemove} />
-          </div>
-        </div>
-        <div style={{display: "flex", flexDirection: "column"}}>
-          <button style={{marginLeft: 20}} onClick={ctx.logoutHandler}>Logout</button>
-        </div>
-      </div>
-
+      <Navigator />
       <p>&nbsp;</p>
-
-      <div style={{display: "flex", justifyContent: "center"}}>
-        <div style={{display: "flex", flexDirection: "column"}}>
-          Stocks
+      <div className={styles.flexCenter}>
+        <div className={styles.flexColumn}>
+          <div className={styles.box}>
+            <div className={`${styles.flexRow} ${styles.left15}`}>
+              Stocks
+              <div className={styles.leftRight5} id="add_stock" onClick={e => setModalVisible('stocks')}>
+                <FontAwesomeIcon icon={faPlus} />
+              </div>
+            </div>
+          </div>
           <ServiceList serviceName="stocks" />
         </div>
-        <div style={{display: "flex", flexDirection: "column"}}>
-          Up Down
+        <div className={styles.flexColumn}>
+          <div className={styles.box}>
+            <div className={`${styles.flexRow} ${styles.left15}`}>
+              Up Down
+              <div className={styles.leftRight5} id="add_updown" onClick={e => setModalVisible('updown')}>
+                <FontAwesomeIcon icon={faPlus} />
+              </div>
+            </div>
+          </div>
           <ServiceList serviceName="updown" />
         </div>
-        <div style={{display: "flex", flexDirection: "column"}}>
-          Weather
+        <div className={styles.flexColumn}>
+          <div className={styles.box}>
+            <div className={`${styles.flexRow} ${styles.left15}`}>
+              Weather
+              <div className={styles.leftRight5} id="add_weather" onClick={e => setModalVisible('weather')}>
+                <FontAwesomeIcon icon={faPlus} />
+              </div>
+            </div>
+          </div>
           <ServiceList serviceName="weather" />
         </div>
       </div>
-
-      <p>&nbsp;</p>
-
-      {/* <select id="output" size="15" style={{"width": "100%"}}></select> */}
+      {modalVisible && modalVisible === 'stocks' && (
+        <Modal visible title='Enter the stock symbol' onClose={sendStockAdd} />
+      )}
+      {modalVisible && modalVisible === 'updown' && (
+        <Modal visible title='Enter the URL' onClose={sendUpDownAdd} />
+      )}
+      {modalVisible && modalVisible === 'weather' && (
+        <Modal visible title='Enter the zip code' onClose={sendWeatherAdd} />
+      )}
     </>
   );
 };

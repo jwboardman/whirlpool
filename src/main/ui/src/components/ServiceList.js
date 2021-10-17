@@ -11,12 +11,6 @@ const ServiceList = props => {
   const ctx = useContext(AppContext);
   const { serviceName } = props;
 
-  const handleClick = e => {
-    e.preventDefault();
-    const key = e.currentTarget.getAttribute('data-key');
-    document.getElementById('data').value = key;
-  };
-
   let list;
 
   if (serviceName === 'weather') {
@@ -32,11 +26,11 @@ const ServiceList = props => {
       {
         list.map(item => {
           if (serviceName === 'weather') {
-            return (<WeatherLocation key={item.key} item={item} handleClick={handleClick} />)
+            return (<WeatherLocation key={item.key} item={item} />)
           } else if (serviceName === 'stocks') {
-            return (<Stock key={item.key} item={item} handleClick={handleClick} />)
+            return (<Stock key={item.key} item={item} />)
           } else if (serviceName === 'updown') {
-            return (<UpDown key={item.key} item={item} handleClick={handleClick} />)
+            return (<UpDown key={item.key} item={item} />)
           }
 
           return (<></>)

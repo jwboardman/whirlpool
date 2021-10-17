@@ -19,9 +19,7 @@ function checkCookie() {
 }
 
 function writeToScreen(message) {
-  var option = document.createElement("option");
-  option.text = message;
-  // document.getElementById("output").add(option);
+  console.log(message);
 }
 
 export {

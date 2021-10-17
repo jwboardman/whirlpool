@@ -8,6 +8,7 @@ import './App.css';
 
 const App = () => {
   const [ isLoggedIn, setIsLoggedIn ] = useState(false);
+  const [ isLoggingOut, setIsLoggingOut ] = useState(false);
   const [ websocket, setWebsocket ] = useState(null);
   const [ clientName, setClientName ] = useState(null);
   const [ stockList, setStockList ] = useState([]);
@@ -23,9 +24,8 @@ const App = () => {
 
     ws.onclose = evt => {
       writeToScreen("DISCONNECTED");
-      var p = document.getElementById("current_user");
-      p.innerHTML = "";
       setIsLoggedIn(false);
+      setIsLoggingOut(false);
     };
 
     ws.onmessage = evt => {
@@ -114,19 +114,6 @@ const App = () => {
     const username = document.getElementById('user').value;
     const password = document.getElementById('password').value;
 
-    var success = function(data) {
-      authenticated(username);
-    };
-
-    var error = function (error) {
-      var json = JSON.parse(error);
-      if (json) {
-        alert(json.reason);
-      } else {
-        alert(error);
-      }
-    };
-
     // This is now called when the user logs in
     const jsonBody = JSON.stringify({user: username, password: password});
     const response = await fetch('/api/login', {
@@ -140,47 +127,97 @@ const App = () => {
     });
 
     if (response.status === 200) {
-      success(await response.json());
+      await response.json();
+      authenticated(username);
     } else {
-      error({errorCode: response.status});
+      alert(`Error: ${response.status}`);
     }
   }, [authenticated]);
 
+  const removeSubscription = useCallback((data, subscriptionType) => {
+    var message = `{"type":"${subscriptionType}", "id":"${clientName}", "command":"remove", "subscription":"${data}"}`;
+    if (websocket) {
+      websocket.send(message);
+      writeToScreen("SENT: " + message);
+    }
+  }, [clientName, websocket]);
+
+  const removeSubscriptionHandler = useCallback((e, subscriptionType) => {
+    if (e) {
+      e.preventDefault();
+    }
+    const data = e.currentTarget.getAttribute('data-key');
+    removeSubscription(data, subscriptionType);
+  }, [removeSubscription]);
+
+  const removeStockHandler = useCallback(e => {
+    if (e) {
+      e.preventDefault();
+    }
+    removeSubscriptionHandler(e, 'TickerCommand');
+  }, [removeSubscriptionHandler]);
+
+  const removeUpDownHandler = useCallback(e => {
+    if (e) {
+      e.preventDefault();
+    }
+    removeSubscriptionHandler(e, 'UpDownCommand');
+  }, [removeSubscriptionHandler]);
+
+  const removeWeatherHandler = useCallback(e => {
+    if (e) {
+      e.preventDefault();
+    }
+    removeSubscriptionHandler(e, 'WeatherCommand');
+  }, [removeSubscriptionHandler]);
+
   const logoutHandler = useCallback(async e => {
-    e.preventDefault();
-    var success = function(data) {
-      setClientName(null);
-      if (websocket) {
-        websocket.close();
-        setWebsocket(null);
-      }
-    };
+    if (e) {
+      e.preventDefault();
+    }
 
-    var error = function (error) {
-      var json = JSON.parse(error);
-      if (json) {
-        alert(json.reason);
-      } else {
-        alert(error);
-      }
-    };
-
-    const response = await fetch('/api/logout', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json;charset=utf-8',
-        'Content-Length': 2
-      },
-      body: {}
+    setStockList(prevState => {
+      prevState.forEach(item => removeSubscription(item.key, 'TickerCommand'));
+      return prevState;
     });
 
-    if (response.status === 200) {
-      success(await response.json());
-    } else {
-      error({errorCode: response.status});
-    }
-  }, [setClientName, websocket, setWebsocket]);
+    setUpDownList(prevState => {
+      prevState.forEach(item => removeSubscription(item.key, 'UpDownCommand'));
+      return prevState;
+    });
+
+    setWeatherList(prevState => {
+      prevState.forEach(item => removeSubscription(item.key, 'WeatherCommand'));
+      return prevState;
+    });
+
+    setIsLoggingOut(true);
+  }, [removeSubscription]);
+
+  if (isLoggingOut && !stockList.length && !upDownList.length && !weatherList.length) {
+    setTimeout(async () => {
+      const response = await fetch('/api/logout', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json;charset=utf-8',
+          'Content-Length': 2
+        },
+        body: {}
+      });
+
+      if (response.status === 200) {
+        await response.json();
+        setClientName(null);
+        if (websocket) {
+          websocket.close();
+          setWebsocket(null);
+        }
+      } else {
+        alert(`Error: ${response.status}`);
+      }
+    }, 1000);
+  }
 
   return (
     <div className="app">
@@ -190,6 +227,9 @@ const App = () => {
         clientName: clientName,
         loginHandler: loginHandler,
         logoutHandler: logoutHandler,
+        removeStockHandler: removeStockHandler,
+        removeUpDownHandler: removeUpDownHandler,
+        removeWeatherHandler: removeWeatherHandler,
         stockList: stockList,
         upDownList: upDownList,
         weatherList: weatherList

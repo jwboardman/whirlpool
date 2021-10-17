@@ -6,6 +6,9 @@ const AppContext = React.createContext({
   clientName: null,
   loginHandler: undefined,
   logoutHandler: undefined,
+  removeStockHandler: undefined,
+  removeUpDownHandler: undefined,
+  removeWeatherHandler: undefined,
   stockList: [],
   upDownList: [],
   weatherList: []
