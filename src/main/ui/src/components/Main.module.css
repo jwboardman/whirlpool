@@ -1,0 +1,10 @@
+.red {
+  background-color: lightcoral;
+  border: 0;
+  margin: 2px;
+}
+
+.plain {
+  border: 0;
+  margin: 2px;
+}

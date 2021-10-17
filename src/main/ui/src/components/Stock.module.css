@@ -1,0 +1,20 @@
+.left {
+  text-align: left;
+}
+
+.row {
+  flex-direction: row;
+}
+
+.cardHeader {
+  background-color: lightcoral;
+}
+
+.cardFrame {
+  border: 1px;
+  border-color: black;
+  background-color: white;
+  border-style: solid;
+  padding-bottom: 5px;
+  margin-bottom: 6px;
+}
