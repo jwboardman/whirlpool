@@ -10,6 +10,8 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.util.AttributeKey;
+
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -192,7 +194,7 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
                                 boolean channelFound = false;
                                 Message message = gson.fromJson(record.value(), Message.class);
                                 for (Channel channel : channels) {
-                                    String key = channel.attr(WebSocketHelper.getClientAttr()).get();
+                                    String key = (String)channel.attr(AttributeKey.valueOf("client")).get();
                                     if (key.equals(message.getId())) {
                                         channelFound = true;
                                         channel.writeAndFlush(new TextWebSocketFrame(record.value()));

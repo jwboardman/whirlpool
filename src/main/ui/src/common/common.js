@@ -18,11 +18,16 @@ function checkCookie() {
   return getCookie("whirlpool");
 }
 
+function deleteCookie(name) {
+  document.cookie = 'whirlpool=foo; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+}
+
 function writeToScreen(message) {
   console.log(message);
 }
 
 export {
   checkCookie,
+  deleteCookie,
   writeToScreen
 };

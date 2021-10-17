@@ -14,12 +14,14 @@ import io.netty.handler.codec.http.multipart.Attribute;
 import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
 import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import io.netty.handler.codec.http.websocketx.*;
+import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -27,8 +29,8 @@ import java.util.Set;
 public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> {
     private static final Logger logger = LoggerFactory.getLogger(WhirlpoolServerHandler.class);
     private static final String authCookieName = "whirlpool";
-    private static final String URI_LOGIN = "/login";
-    private static final String URI_LOGOUT = "/logout";
+    private static final String URI_LOGIN = "/api/login";
+    private static final String URI_LOGOUT = "/api/logout";
     private static final String URI_EMPTY = "/";
     private static final Long   authCookieMaxAge = 1209600L;
 
@@ -44,7 +46,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        String client = ctx.channel().attr(WebSocketHelper.getClientAttr()).get();
+        String client = (String)ctx.channel().attr(AttributeKey.valueOf("client")).get();
         logger.info(String.format("[INACTIVE] Channel with client %s has gone inactive", client));
         super.channelInactive(ctx);
     }
@@ -210,7 +212,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
 
                     if (username != null) {
                         for (Channel channel : channels) {
-                            String key = channel.attr(WebSocketHelper.getClientAttr()).get();
+                            String key = (String)channel.attr(AttributeKey.valueOf("client")).get();
                             if (key.equals(username)) {
                                 logger.error(String.format("Existing user '%s' found, failing login!", username));
                                 nettyCookie = WebSocketHelper.expireCookie(authCookieName, host);
@@ -237,15 +239,17 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
                 }
             } else if (URI_LOGOUT.equals(uri)) {
                 if (userName != null) {
+                    ArrayList<ChannelId> channelIds = new ArrayList<ChannelId>(channels.size());
                     for (Channel channel : channels) {
-                        String key = channel.attr(WebSocketHelper.getClientAttr()).get();
+                        String key = (String)channel.attr(AttributeKey.valueOf("client")).get();
                         if (key.equals(userName)) {
-                            logger.info(String.format("Logged out, removing client '%s' from channel and removing channel", userName));
-                            channel.attr(WebSocketHelper.getClientAttr()).set(null);
-                            channels.remove(channel);
-                            channel.writeAndFlush(new CloseWebSocketFrame());
-                            break;
+                            channelIds.add(channel.id());
                         }
+                    }
+
+                    for (ChannelId channelId : channelIds) {
+                        // shut up, you can pass a channelId here
+                        channels.remove(channelId);
                     }
                 }
 
@@ -293,7 +297,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
                           }
 
                           logger.info(String.format("Authorized, websocket upgrade complete, adding client '%s' to channel and saving channel", userName));
-                          future.channel().attr(WebSocketHelper.getClientAttr()).set(userName);
+                          future.channel().attr(AttributeKey.valueOf("client")).set(userName);
                           channels.add(future.channel());
                       }
                   });

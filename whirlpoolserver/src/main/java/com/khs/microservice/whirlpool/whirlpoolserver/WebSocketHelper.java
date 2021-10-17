@@ -3,7 +3,6 @@ package com.khs.microservice.whirlpool.whirlpoolserver;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.*;
-import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 
 import java.io.File;
@@ -14,12 +13,6 @@ public class WebSocketHelper {
     public static final String  HTTP_DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
     public static final String  HTTP_DATE_GMT_TIMEZONE = "GMT";
     public static final int     HTTP_CACHE_SECONDS = 60;
-
-    private static final AttributeKey<String> clientAttr = AttributeKey.valueOf("client");
-
-    public static AttributeKey<String> getClientAttr() {
-        return clientAttr;
-    }
 
     public static void realWriteAndFlush(Channel channel, String text, String contentType, boolean keepalive, DefaultCookie nettyCookie) {
         FullHttpResponse response = new DefaultFullHttpResponse(

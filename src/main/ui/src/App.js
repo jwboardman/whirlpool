@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import Login from './components/Login';
 import Main from './components/Main';
 import AppContext from './store/app-context';
-import { checkCookie, writeToScreen } from './common/common';
+import { checkCookie, deleteCookie, writeToScreen } from './common/common';
 
 import './App.css';
 
@@ -123,8 +123,12 @@ const App = () => {
     });
 
     if (response.status === 200) {
-      await response.json();
-      authenticated(username);
+      const json = await response.json();
+      if (json?.response === 'fail') {
+        alert(`Error: login failed`);
+      } else {
+        authenticated(username);
+      }
     } else {
       alert(`Error: ${response.status}`);
     }
@@ -208,6 +212,7 @@ const App = () => {
 
       if (response.status === 200) {
         await response.json();
+        deleteCookie(clientName);
         setClientName(null);
         if (websocket) {
           websocket.close();
@@ -223,9 +228,8 @@ const App = () => {
   // the timeout makes React happy
   const username = checkCookie();
   if (username && !isLoggedIn) {
-    setTimeout(async () => {
-      authenticated(username);
-    }, 100);
+    authenticated(username);
+    return <></>;
   }
 
   return (
