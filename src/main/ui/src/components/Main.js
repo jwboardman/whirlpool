@@ -90,6 +90,9 @@ const Main = () => {
             <input id="remove_weather" className={styles.red} type="button" value="X" onClick={sendWeatherRemove} />
           </div>
         </div>
+        <div style={{display: "flex", flexDirection: "column"}}>
+          <button style={{marginLeft: 20}} onClick={ctx.logoutHandler}>Logout</button>
+        </div>
       </div>
 
       <p>&nbsp;</p>
