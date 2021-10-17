@@ -1,0 +1,65 @@
+.left {
+  text-align: left;
+}
+
+.row {
+  flex-direction: row;
+}
+
+.cardHeader {
+  background-color: lightcoral;
+}
+
+.cardFrame {
+  border: 1px;
+  border-color: black;
+  background-color: white;
+  border-style: solid;
+  padding-bottom: 5px;
+  margin-bottom: 6px;
+}
+
+.red {
+  color: red;
+  border: 0;
+  margin: 2px;
+}
+
+.plain {
+  border: 0;
+  margin: 2px;
+}
+
+.flexCenter {
+  display: flex;
+  justify-content: center;
+}
+
+.flexRow {
+  display: flex;
+  flex-direction: row;
+}
+
+.flexColumn {
+  display: flex;
+  flex-direction: column;
+}
+
+.leftRight5 {
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+.right20 {
+  margin-right: 20px;
+}
+
+.left15 {
+  margin-left: 15px;
+}
+
+.box {
+  border: 1px solid;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
