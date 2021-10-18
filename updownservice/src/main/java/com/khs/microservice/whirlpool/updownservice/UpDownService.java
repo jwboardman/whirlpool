@@ -22,8 +22,8 @@ import java.util.Map;
  * This producer will send stock updates to the stock-ticker topic.
  */
 public class UpDownService extends BaseService {
+    @SuppressWarnings("unused")
     public static void main(String[] args) throws IOException {
-        @SuppressWarnings("unused")
         UpDownService service = new UpDownService();
         try {
             Thread.sleep(Long.MAX_VALUE);

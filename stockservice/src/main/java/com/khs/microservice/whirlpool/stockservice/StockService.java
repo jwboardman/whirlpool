@@ -24,8 +24,8 @@ public class StockService extends BaseService {
     private static final String STOCK_URL_START = "https://finance.yahoo.com/quote/";
     private static final String STOCK_URL_END = "?p=";
 
+    @SuppressWarnings("unused")
     public static void main(String[] args) throws IOException {
-        @SuppressWarnings("unused")
         StockService service = new StockService();
         try {
             Thread.sleep(Long.MAX_VALUE);

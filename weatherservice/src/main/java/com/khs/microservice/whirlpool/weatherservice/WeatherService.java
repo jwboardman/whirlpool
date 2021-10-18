@@ -28,8 +28,8 @@ public class WeatherService extends BaseService {
     private static final String WEATHER_URL2_START = "https://data.api.cnn.io/weather/getForecast/";
     private static final String WEATHER_URL2_END = "/fahrenheit";
 
+    @SuppressWarnings("unused")
     public static void main(String[] args) throws IOException {
-        @SuppressWarnings("unused")
         WeatherService service = new WeatherService();
         try {
             Thread.sleep(Long.MAX_VALUE);

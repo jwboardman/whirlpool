@@ -124,6 +124,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
         return false;
     }
 
+    @SuppressWarnings("unlikely-arg-type")
     protected void handleHttpRequest(ChannelHandlerContext ctx, FullHttpRequest req)
             throws Exception {
         String uri = req.uri();
