@@ -168,6 +168,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
 
             if (URI_LOGIN.equals(uri)) {
                 String username = null;
+                @SuppressWarnings("unused")
                 String password = null;
 
                 try {

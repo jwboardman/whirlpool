@@ -29,6 +29,7 @@ public class WeatherService extends BaseService {
     private static final String WEATHER_URL2_END = "/fahrenheit";
 
     public static void main(String[] args) throws IOException {
+        @SuppressWarnings("unused")
         WeatherService service = new WeatherService();
         try {
             Thread.sleep(Long.MAX_VALUE);

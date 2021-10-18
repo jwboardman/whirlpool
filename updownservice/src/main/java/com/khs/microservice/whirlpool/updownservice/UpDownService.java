@@ -23,6 +23,7 @@ import java.util.Map;
  */
 public class UpDownService extends BaseService {
     public static void main(String[] args) throws IOException {
+        @SuppressWarnings("unused")
         UpDownService service = new UpDownService();
         try {
             Thread.sleep(Long.MAX_VALUE);

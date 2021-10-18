@@ -10,10 +10,11 @@ zookeeper_init() {
 
     # Create the config files
     cat >"${ZOOKEEPER_HOME}/config/zoo.cfg" <<EOF
-clientPortAddress=zookeeper.whirlpool
+clientPortAddress=localhost
 tickTime=2000
 initLimit=10
 syncLimit=5
+admin.enableServer=false
 clientPort=2181
 maxClientCnxns=60
 autopurge.snapRetainCount=3
@@ -35,11 +36,13 @@ function kafka_init() {
 
     echo "Initializing Apache Kafka Server..."
 
-    local HSTN=$(cat /data/hostname 2>/dev/null)
+#    local HSTN=$(cat /data/hostname 2>/dev/null)
+    local HSTN=localhost
     [ -z "${HSTN}" ] && [ ! -z "${ZOOKEEPER}" ] && HSTN="kafka.whirlpool"
     [ -z "${HSTN}" ] && [ -z "${ZOOKEEPER}" ] && HSTN="kafkaops.whirlpool"
 
-    local ZKN=$(cat /data/zk 2>/dev/null)
+#    local ZKN=$(cat /data/zk 2>/dev/null)
+    local ZKN=localhost
     [ -z "${ZKN}" ] && [ ! -z "${ZOOKEEPER}" ] && ZKN="${ZOOKEEPER}"
     [ -z "${ZKN}" ] && [ -z "${ZOOKEEPER}" ] && ZKN="${ZOOKEEPEROPS}"
     [ -z "${ZKN}" ] && ZKN="zookeeper.whirlpool"
@@ -50,8 +53,7 @@ function kafka_init() {
     echo "Setting up broker: brokerid=${BID}, hostname=${HSTN}, zookeeper=${ZKN} ..."
     perl -pi -e "s/^#\s*host.name\s*=.*$/host.name=$HSTN/g" $KAFKA_HOME/config/server.properties
     perl -pi -e "s/^\s*broker.id\s*=.*$/broker.id=$BID/g" $KAFKA_HOME/config/server.properties
-    perl -pi -e "s/^\s*#\s*advertised.host.name\s*=.*$/advertised.host.name=$HSTN/g" $KAFKA_HOME/config/server.properties
-    perl -pi -e "s/^\s*zookeeper.connect\s*=.*$/zookeeper.connect=$ZKN/g" $KAFKA_HOME/config/server.properties
+    perl -pi -e "s/^\s*zookeeper.connect\s*=.*$/zookeeper.connect=localhost:2181/g" $KAFKA_HOME/config/server.properties
     perl -pi -e "s/^\s*log.cleaner.enable\s*=.*$/log.cleaner.enable=true/g" $KAFKA_HOME/config/server.properties
     perl -pi -e "s/^\s*num.partitions\s*=.*$/num.partitions=1/g" $KAFKA_HOME/config/server.properties
     perl -pi -e "s/^\s*num.recovery.threads.per.data.dir\s*=.*$/num.recovery.threads.per.data.dir=4/g" $KAFKA_HOME/config/server.properties
@@ -62,7 +64,7 @@ function kafka_init() {
 
 function check_kafka() {
     # cqlsh will return an error code if it can't connect to cassandra
-    "${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPEROPS}" --list
+    "${KAFKA_HOME}/bin/kafka-topics.sh" --bootstrap-server="${KAFKA_OPS}" --list
 }
 
 function kafka_topics() {
@@ -89,19 +91,19 @@ function kafka_topics() {
        echo "Kafka is online"
     fi
 
-    export KAFKA_HEAP_OPTS="-Xmx4m -Xms4m"
+    export KAFKA_HEAP_OPTS="-Xmx128m -Xms128m"
     export KAFKA_JVM_PERFORMANCE_OPTS="-client -Djava.awt.headless=true"
 
     RESULT=0
 
     echo "Creating Kafka Topics..."
 
-    "${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPER}" --create --partitions 16 --replication-factor ${KAFKA_REPLICATION} --topic "stock-ticker" & PID0=$!
-    "${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPER}" --create --partitions 16 --replication-factor ${KAFKA_REPLICATION} --topic "stock-ticker-cmd" & PID1=$!
-    "${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPER}" --create --partitions 16 --replication-factor ${KAFKA_REPLICATION} --topic "updown" & PID2=$!
-    "${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPER}" --create --partitions 16 --replication-factor ${KAFKA_REPLICATION} --topic "updown-cmd" & PID3=$!
-    "${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPER}" --create --partitions 16 --replication-factor ${KAFKA_REPLICATION} --topic "weather" & PID4=$!
-    "${KAFKA_HOME}/bin/kafka-topics.sh" --zookeeper "${ZOOKEEPER}" --create --partitions 16 --replication-factor ${KAFKA_REPLICATION} --topic "weather-cmd" & PID5=$!
+    "${KAFKA_HOME}/bin/kafka-topics.sh" --bootstrap-server="${KAFKA_OPS}" --create --partitions 16 --replication-factor ${KAFKA_REPLICATION} --topic "stock-ticker" & PID0=$!
+    "${KAFKA_HOME}/bin/kafka-topics.sh" --bootstrap-server="${KAFKA_OPS}" --create --partitions 16 --replication-factor ${KAFKA_REPLICATION} --topic "stock-ticker-cmd" & PID1=$!
+    "${KAFKA_HOME}/bin/kafka-topics.sh" --bootstrap-server="${KAFKA_OPS}" --create --partitions 16 --replication-factor ${KAFKA_REPLICATION} --topic "updown" & PID2=$!
+    "${KAFKA_HOME}/bin/kafka-topics.sh" --bootstrap-server="${KAFKA_OPS}" --create --partitions 16 --replication-factor ${KAFKA_REPLICATION} --topic "updown-cmd" & PID3=$!
+    "${KAFKA_HOME}/bin/kafka-topics.sh" --bootstrap-server="${KAFKA_OPS}" --create --partitions 16 --replication-factor ${KAFKA_REPLICATION} --topic "weather" & PID4=$!
+    "${KAFKA_HOME}/bin/kafka-topics.sh" --bootstrap-server="${KAFKA_OPS}" --create --partitions 16 --replication-factor ${KAFKA_REPLICATION} --topic "weather-cmd" & PID5=$!
 
     wait $PID0; RESULT=$(($RESULT | $?))
     wait $PID1; RESULT=$(($RESULT | $?))
@@ -119,8 +121,8 @@ function kafka_topics() {
 }
 
 function zk_kafka() {
-    export KAFKA_SCALA_VERSION=2.11
-    export KAFKA_VERSION=0.9.0.1
+    export KAFKA_SCALA_VERSION=2.13
+    export KAFKA_VERSION=3.0.0
 
     echo "Removing previous installation of Kafka and Zookeeper"
     rm -rf /opt/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}
@@ -138,19 +140,20 @@ function zk_kafka() {
 
     # Install Kafka, which also installs Zookeeper
     if [ ! -f /tmp/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz ]; then
-        curl -# -L -o /tmp/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz http://mirrors.ibiblio.org/apache/kafka/${KAFKA_VERSION}/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz
+        curl -# -L -o /tmp/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz https://dlcdn.apache.org/kafka/${KAFKA_VERSION}/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz
     fi
 
     tar xfz /tmp/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt
     ln -s /opt/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION} /opt/kafka
 
     export KAFKA_HOME=/opt/kafka
+    export KAFKA_OPS=localhost:9092
     export KAFKA_REPLICATION=1
     export KAFKA_HSIZE=704
 
     export ZOOKEEPER_HOME=/opt/kafka
-    export ZOOKEEPER=zookeeper.whirlpool:2181
-    export ZOOKEEPEROPS=zookeeper.whirlpool:2181
+    export ZOOKEEPER=localhost:2181
+    export ZOOKEEPEROPS=localhost:2181
 
     zookeeper_init
     kafka_init
