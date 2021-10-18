@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Login from './components/Login';
 import Main from './components/Main';
 import AppContext from './store/app-context';
@@ -24,6 +24,7 @@ const App = () => {
 
     ws.onclose = evt => {
       // once the websocket is finished closing, we've completed the logout process
+      window.triedCookieAuth = false;
       writeToScreen("DISCONNECTED");
       setIsLoggedIn(false);
       setIsLoggingOut(false);
@@ -194,6 +195,15 @@ const App = () => {
     setIsLoggingOut(true);
   }, [removeSubscription]);
 
+  useEffect(() => {
+    // check to see if we have a cookie set so we can automatically login
+    // the timeout makes React happy
+    const username = checkCookie();
+    if (username && !isLoggedIn) {
+      authenticated(username);
+    }
+  }, [isLoggedIn, authenticated]);
+
   // if we are logging out, check to see if all of the subscriptions have been updated
   // from the result of the websocket remove subscription calls. if everything is done,
   // finish the logout
@@ -222,14 +232,6 @@ const App = () => {
         alert(`Error: ${response.status}`);
       }
     }, 1000);
-  }
-
-  // check to see if we have a cookie set so we can automatically login
-  // the timeout makes React happy
-  const username = checkCookie();
-  if (username && !isLoggedIn) {
-    authenticated(username);
-    return <></>;
   }
 
   return (
