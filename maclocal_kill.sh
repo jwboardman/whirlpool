@@ -27,7 +27,7 @@ rm -rf /tmp/zookeeper
 # find all terminal windows
 # loop through all terminal windows
 # find all tabs for the current terminal window
-# send command-1 to skip the first tab, which we don't want to close
+# send command-2 to skip the first tab, which we don't want to close
 # loop through tabs 2-n
 # send command-w to close the tab
 
