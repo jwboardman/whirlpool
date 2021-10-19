@@ -37,6 +37,15 @@ import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.CharsetUtil;
+
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.ThreadFactory;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,8 +58,21 @@ public final class WhirlpoolServer {
 
    public static void main(String[] args) throws Exception {
       // Configure the server.
-      EventLoopGroup bossGroup = new NioEventLoopGroup(1);
-      EventLoopGroup workerGroup = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors());
+      final EventLoopGroup bossGroup = new NioEventLoopGroup(1);
+      final EventLoopGroup workerGroup = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors());
+      final ConcurrentLinkedQueue<String> requestQueue = new ConcurrentLinkedQueue<>();
+  
+      final ThreadFactory producerThreadFactory = new ThreadFactoryBuilder()
+        .setDaemon(true)
+        .setNameFormat("to-kafka-%d").build();
+
+      WhirlpoolKafkaProducer toKafkaCallable = new WhirlpoolKafkaProducer(requestQueue);
+      FutureTask<String> toKafka = new FutureTask<>(toKafkaCallable);
+
+      ExecutorService toKafkaExecutor = Executors.newSingleThreadExecutor(producerThreadFactory);
+      toKafkaExecutor.execute(toKafka);
+      toKafkaExecutor.shutdown();
+
       try {
          ServerBootstrap b = new ServerBootstrap();
          b.group(bossGroup, workerGroup)
@@ -66,7 +88,7 @@ public final class WhirlpoolServer {
                 p.addLast("stringDecoder", new StringDecoder(CharsetUtil.UTF_8));
                 p.addLast("stringEncoder", new StringEncoder(CharsetUtil.UTF_8));
                 p.addLast("http-chunked", new ChunkedWriteHandler());
-                p.addLast("handler", new WhirlpoolServerHandler());
+                p.addLast("handler", new WhirlpoolServerHandler(requestQueue));
              }
           });
 

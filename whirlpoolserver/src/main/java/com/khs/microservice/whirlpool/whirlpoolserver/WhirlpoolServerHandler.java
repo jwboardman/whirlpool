@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> {
     private static final Logger logger = LoggerFactory.getLogger(WhirlpoolServerHandler.class);
@@ -35,10 +36,11 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
     private WebSocketServerHandshaker handshaker;
     private StringBuilder frameBuffer = null;
     private final NettyHttpFileHandler httpFileHandler = new NettyHttpFileHandler();
-    private final WebSocketMessageHandler wsMessageHandler = new WhirlpoolMessageHandler();
+    private final WebSocketMessageHandler wsMessageHandler;
     private WebSocketServerHandshakerFactory wsFactory;
 
-    public WhirlpoolServerHandler() {
+    public WhirlpoolServerHandler(ConcurrentLinkedQueue<String> requestQueue) {
+        wsMessageHandler = new WhirlpoolMessageHandler(requestQueue);
     }
 
     @Override
