@@ -1,9 +1,9 @@
 # TL;DR
-clone repo
-`./maclocal_run.sh` or `./linuxlocal_run.sh`
-when that finishes
-`cd src/main/ui`
-`yarn start`
+- clone repo
+- `./maclocal_run.sh` or `./linuxlocal_run.sh`
+- when that finishes
+- `cd src/main/ui`
+- `yarn start`
 
 # Recommended Development Setup
 - Mac OSX, latest version or Ubuntu 20.04 (I have mine running in a container inside Parallels)
