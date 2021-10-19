@@ -283,7 +283,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
             String upgradeHeader = upgradeHeaderCharSeq.toString();
             if ("websocket".equalsIgnoreCase(upgradeHeader)) {
               // Handshake. Ideally you'd want to configure your websocket uri
-              String url = "ws://" + req.headers().get("Host") + "/wsticker";
+              String url = "ws://" + req.headers().get("Host") + "/wswhirlpool";
               WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(url, null, false);
               handshaker = wsFactory.newHandshaker(req);
               if (handshaker == null) {

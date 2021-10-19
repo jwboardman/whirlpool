@@ -23,7 +23,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -46,10 +48,10 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
         FutureTask<String> toClientPc = new FutureTask<>(toClientCallable);
 
         ExecutorService toClientExecutor = Executors.newSingleThreadExecutor(
-                new ThreadFactoryBuilder()
-                        .setDaemon(true)
-                        .setNameFormat("to-client-%d")
-                        .build()
+            new ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat("to-client-%d")
+                .build()
         );
         toClientExecutor.execute(toClientPc);
 
@@ -57,10 +59,10 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
         FutureTask<String> toKafka = new FutureTask<>(toKafkaCallable);
 
         ExecutorService toKafkaExecutor = Executors.newSingleThreadExecutor(
-                new ThreadFactoryBuilder()
-                        .setDaemon(true)
-                        .setNameFormat("to-kafka-%d")
-                        .build()
+            new ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat("to-kafka-%d")
+                .build()
         );
         toKafkaExecutor.execute(toKafka);
     }
@@ -68,9 +70,11 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
     public String handleMessage(ChannelHandlerContext ctx, String frameText) {
         Message message = gson.fromJson(frameText, Message.class);
 
+        // the ALL type is sent on refresh messages
         if (message.getType().equals("TickerCommand") ||
             message.getType().equals("UpDownCommand") ||
-            message.getType().equals("WeatherCommand")) {
+            message.getType().equals("WeatherCommand") ||
+            message.getType().equals("ALL")) {
             requestQueue.add(frameText);
         } else {
             CommandResponse commandResponse = new CommandResponse();
@@ -110,36 +114,43 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
                     while ((request = requestQueue.poll()) != null) {
                         // simple class containing only the type
                         Message message = gson.fromJson(request, Message.class);
-                        String topic = null;
+                        List<String> topics = new ArrayList<String>();
 
                         switch (message.getType()) {
                             case "TickerCommand":
-                                topic = "stock-ticker-cmd";
+                                topics.add("stock-ticker-cmd");
                                 break;
                             case "UpDownCommand":
-                                topic = "updown-cmd";
+                                topics.add("updown-cmd");
                                 break;
                             case "WeatherCommand":
-                                topic = "weather-cmd";
+                                topics.add("weather-cmd");
+                                break;
+                            case "ALL":
+                                topics.add("stock-ticker-cmd");
+                                topics.add("updown-cmd");
+                                topics.add("weather-cmd");
                                 break;
                         }
 
-                        if (topic != null) {
-                            producer.send(new ProducerRecord<>(topic, request),
-                                (metadata, e) -> {
-                                    if (e != null) {
-                                        logger.error(e.getMessage(), e);
-                                    }
+                        if (topics.size() > 0) {
+                            for(String topic : topics) {
+                                producer.send(new ProducerRecord<>(topic, request),
+                                    (metadata, e) -> {
+                                        if (e != null) {
+                                            logger.error(e.getMessage(), e);
+                                        }
 
-                                    logger.debug("The offset of the record we just sent is: " + metadata.offset());
-                                });
+                                        logger.debug("The offset of the record we just sent is: " + metadata.offset());
+                                    });
+
+                                producer.flush();
+                                Thread.sleep(20L);
+                            }
                         } else {
                             logger.info(String.format("Ignoring message with unknown type %s", message.getType()));
                         }
                     }
-
-                    producer.flush();
-                    Thread.sleep(20L);
                 }
             } catch (Throwable throwable) {
                 logger.error(throwable.getMessage(), throwable);
@@ -195,7 +206,7 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
                                 Message message = gson.fromJson(record.value(), Message.class);
                                 for (Channel channel : channels) {
                                     String key = (String)channel.attr(AttributeKey.valueOf("client")).get();
-                                    if (key.equals(message.getId())) {
+                                    if (key != null && key.equals(message.getId())) {
                                         channelFound = true;
                                         channel.writeAndFlush(new TextWebSocketFrame(record.value()));
                                         break;

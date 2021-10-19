@@ -30,6 +30,7 @@ public class NettyHttpFileHandler {
 
     // all methods static, no need for constructor
     public NettyHttpFileHandler() {
+        // load the mime types in a thread-safe manner since all threads will share this data
         synchronized(_lock) {
             if (mimeTypesMap == null) {
                 InputStream is = this.getClass().getResourceAsStream("/META-INF/server.mime.types");

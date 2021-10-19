@@ -12,49 +12,37 @@ import styles from './Main.module.css';
 
 const Main = () => {
   const ctx = useContext(AppContext);
+  const { websocket, clientName } = ctx;
   const [ modalVisible, setModalVisible ] = useState(null);
 
-  const doSend = useCallback(message => {
-    if (ctx.websocket) {
-      ctx.websocket.send(message);
+  const doSend = useCallback((e, messageType, data) => {
+    if (e) {
+      e.preventDefault();
+    }
+
+    setModalVisible(null);
+
+    if (websocket && data) {
+      const message = `{"type":"${messageType}", "id":"${clientName}", "command":"add", "subscription":"${data}"}`;
+      websocket.send(message);
       writeToScreen("SENT: " + message);
-    } else {
-      ctx.logoutHandler();
     }
-  }, [ctx]);
+  }, [clientName, websocket]);
 
+  // this is called from the Modal component after the user enters the symbol
   const sendStockAdd = useCallback((e, data) => {
-    if (e) {
-      e.preventDefault();
-    }
-    setModalVisible(null);
-    if (data) {
-      var message = '{"type":"TickerCommand", "id":"' + ctx.clientName + '", "command":"add", "subscription":"' + data + '"}';
-      doSend(message);
-    }
-  }, [doSend, ctx.clientName]);
+    doSend(e, 'TickerCommand', data);
+  }, [doSend]);
 
+  // this is called from the Modal component after the user enters the URL
   const sendUpDownAdd = useCallback((e, data) => {
-    if (e) {
-      e.preventDefault();
-    }
-    setModalVisible(null);
-    if (data) {
-      var message = '{"type":"UpDownCommand", "id":"' + ctx.clientName + '", "command":"add", "subscription":"' + data + '"}';
-      doSend(message);
-    }
-  }, [doSend, ctx.clientName]);
+    doSend(e, 'UpDownCommand', data);
+  }, [doSend]);
 
+  // this is called from the Modal component after the user enters the zip code
   const sendWeatherAdd = useCallback((e, data) => {
-    if (e) {
-      e.preventDefault();
-    }
-    setModalVisible(null);
-    if (data) {
-      var message = '{"type":"WeatherCommand", "id":"' + ctx.clientName + '", "command":"add", "subscription":"' + data + '"}';
-      doSend(message);
-    }
-  }, [doSend, ctx.clientName]);
+    doSend(e, 'WeatherCommand', data);
+  }, [doSend]);
 
   return (
     <>
@@ -63,9 +51,9 @@ const Main = () => {
       <div className={styles.flexCenter}>
         <div className={styles.flexColumn}>
           <div className={styles.box}>
-            <div className={`${styles.flexRow} ${styles.left15}`}>
+            <div className={`${styles.flexRow} ${styles.left15}`} onClick={e => setModalVisible('stocks')}>
               Stocks
-              <div className={styles.leftRight5} id="add_stock" onClick={e => setModalVisible('stocks')}>
+              <div className={styles.leftRight5}>
                 <FontAwesomeIcon icon={faPlus} />
               </div>
             </div>
@@ -74,9 +62,9 @@ const Main = () => {
         </div>
         <div className={styles.flexColumn}>
           <div className={styles.box}>
-            <div className={`${styles.flexRow} ${styles.left15}`}>
+            <div className={`${styles.flexRow} ${styles.left15}`} onClick={e => setModalVisible('updown')}>
               Up Down
-              <div className={styles.leftRight5} id="add_updown" onClick={e => setModalVisible('updown')}>
+              <div className={styles.leftRight5}>
                 <FontAwesomeIcon icon={faPlus} />
               </div>
             </div>
@@ -85,9 +73,9 @@ const Main = () => {
         </div>
         <div className={styles.flexColumn}>
           <div className={styles.box}>
-            <div className={`${styles.flexRow} ${styles.left15}`}>
+            <div className={`${styles.flexRow} ${styles.left15}`} onClick={e => setModalVisible('weather')}>
               Weather
-              <div className={styles.leftRight5} id="add_weather" onClick={e => setModalVisible('weather')}>
+              <div className={styles.leftRight5}>
                 <FontAwesomeIcon icon={faPlus} />
               </div>
             </div>
@@ -95,13 +83,13 @@ const Main = () => {
           <ServiceList serviceName="weather" />
         </div>
       </div>
-      {modalVisible && modalVisible === 'stocks' && (
+      {modalVisible === 'stocks' && (
         <Modal visible title='Enter the stock symbol' onClose={sendStockAdd} />
       )}
-      {modalVisible && modalVisible === 'updown' && (
+      {modalVisible === 'updown' && (
         <Modal visible title='Enter the URL' onClose={sendUpDownAdd} />
       )}
-      {modalVisible && modalVisible === 'weather' && (
+      {modalVisible === 'weather' && (
         <Modal visible title='Enter the zip code' onClose={sendWeatherAdd} />
       )}
     </>

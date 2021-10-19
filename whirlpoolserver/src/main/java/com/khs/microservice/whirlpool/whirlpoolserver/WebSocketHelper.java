@@ -10,15 +10,15 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class WebSocketHelper {
-    public static final String  HTTP_DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
-    public static final String  HTTP_DATE_GMT_TIMEZONE = "GMT";
-    public static final int     HTTP_CACHE_SECONDS = 60;
+    public static final String HTTP_DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss zzz";
+    public static final String HTTP_DATE_GMT_TIMEZONE = "GMT";
+    public static final int    HTTP_CACHE_SECONDS = 60;
 
     public static void realWriteAndFlush(Channel channel, String text, String contentType, boolean keepalive, DefaultCookie nettyCookie) {
         FullHttpResponse response = new DefaultFullHttpResponse(
-                HttpVersion.HTTP_1_1,
-                HttpResponseStatus.OK,
-                Unpooled.copiedBuffer(text + "\r\n", CharsetUtil.UTF_8));
+            HttpVersion.HTTP_1_1,
+            HttpResponseStatus.OK,
+            Unpooled.copiedBuffer(text + "\r\n", CharsetUtil.UTF_8));
 
         HttpHeaderUtil.setContentLength(response, text.length());
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, contentType);
@@ -38,10 +38,8 @@ public class WebSocketHelper {
     /**
      * Sets the Date and Cache headers for the HTTP Response
      *
-     * @param response
-     *            HTTP response
-     * @param fileToCache
-     *            file to extract content type
+     * @param response HTTP response
+     * @param fileToCache file to extract content type
      */
     public static void setDateAndCacheHeaders(HttpResponse response, File fileToCache) {
         SimpleDateFormat dateFormatter = new SimpleDateFormat(WebSocketHelper.HTTP_DATE_FORMAT, Locale.US);
@@ -59,10 +57,9 @@ public class WebSocketHelper {
     }
 
     /**
-     * Sets the Date header for the HTTP response
+     * Sets the Date header for the HTTP response using the default GregorianCalendar
      *
-     * @param response
-     *            HTTP response
+     * @param response HTTP response
      */
     public static void setDateHeader(HttpResponse response) {
         setDateHeader(response, new GregorianCalendar());
@@ -71,8 +68,7 @@ public class WebSocketHelper {
     /**
      * Sets the Date header for the HTTP response
      *
-     * @param response
-     *            HTTP response
+     * @param response HTTP response
      */
     public static void setDateHeader(HttpResponse response, Calendar time) {
         setDateHeader(response, time, new SimpleDateFormat(WebSocketHelper.HTTP_DATE_FORMAT, Locale.US));
@@ -81,8 +77,7 @@ public class WebSocketHelper {
     /**
      * Sets the Date header for the HTTP response
      *
-     * @param response
-     *            HTTP response
+     * @param response HTTP response
      */
     public static void setDateHeader(HttpResponse response, Calendar time, SimpleDateFormat dateFormatter) {
         dateFormatter.setTimeZone(TimeZone.getTimeZone(WebSocketHelper.HTTP_DATE_GMT_TIMEZONE));
@@ -92,6 +87,7 @@ public class WebSocketHelper {
     public static DefaultCookie createCookie(String authCookieName, String domainName, String value, Long maxAge) {
         DefaultCookie nettyCookie = new DefaultCookie(authCookieName, value);
         nettyCookie.setMaxAge(maxAge);
+        // this allows JavaScript to see the Cookie
         nettyCookie.setHttpOnly(false);
         nettyCookie.setPath("/");
         if (domainName != null && !"none".equals(domainName)) {
@@ -100,7 +96,8 @@ public class WebSocketHelper {
         return nettyCookie;
     }
 
+    // set the Cookie expiration date to 1s past Thu, 01 Jan 1970 00:00:01 GMT
     public static DefaultCookie expireCookie(String authCookieName, String domainName) {
-        return createCookie(authCookieName, domainName, "", 1L);
+        return createCookie(authCookieName, domainName, "", 1000L);
     }
 }

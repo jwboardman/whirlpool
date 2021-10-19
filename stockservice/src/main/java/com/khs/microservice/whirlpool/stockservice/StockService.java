@@ -44,6 +44,7 @@ public class StockService extends BaseService {
         return "TickerCommand";
     }
 
+    // Uses ugly screen scraping since I couldn't find a free service to use
     @Override
     protected void collectData(Gson gson, String user, List<String> subscriptions) {
         Map<String, String> subscriptionData = new HashMap<>();

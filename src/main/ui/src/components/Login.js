@@ -1,8 +1,16 @@
-import { useContext } from 'react';
+import { useCallback, useContext } from 'react';
 import AppContext from '../store/app-context';
 
 const Login = () => {
   const ctx = useContext(AppContext);
+  const { loginHandler } = ctx;
+
+  const login = useCallback(e => {
+    const username = document.getElementById('user').value;
+    const password = document.getElementById('password').value;
+
+    loginHandler(e, username, password);
+  }, [loginHandler]);
 
   return (
     <table>
@@ -22,7 +30,7 @@ const Login = () => {
         </tr>
         <tr>
           <td colSpan="2">
-            <button id="login" onClick={ctx.loginHandler}>Login</button>
+            <button id="login" onClick={login}>Login</button>
           </td>
         </tr>
       </tbody>

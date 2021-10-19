@@ -45,24 +45,24 @@ public abstract class BaseService {
 
     public void startServer(String commandTopic, String producerTopic) {
         consumerExecutor = Executors.newSingleThreadExecutor(
-                new ThreadFactoryBuilder()
-                        .setDaemon(true)
-                        .setNameFormat("consumer-%d")
-                        .build()
+            new ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat("consumer-%d")
+                .build()
         );
 
         producerExecutor = Executors.newSingleThreadExecutor(
-                new ThreadFactoryBuilder()
-                        .setDaemon(true)
-                        .setNameFormat("producer-%d")
-                        .build()
+            new ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat("producer-%d")
+                .build()
         );
 
         dataExecutor = Executors.newSingleThreadExecutor(
-                new ThreadFactoryBuilder()
-                        .setDaemon(true)
-                        .setNameFormat("producer-%d")
-                        .build()
+            new ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat("producer-%d")
+                .build()
         );
 
         FutureTask<String> sendTickers = new FutureTask<>(new SendDataCallable(producerTopic));
@@ -152,6 +152,14 @@ public abstract class BaseService {
                                         response.setCommand(command.getCommand());
                                         response.setErrorMessage("Subscription: (" + command.getSubscription() + ") was not found");
                                     }
+                                } else if ("refresh".equals(command.getCommand())) {
+                                    items = allSubscriptions.get(command.getId());
+                                    if (items != null && items.size() > 0) {
+                                        collectData(gson, command.getId(), items);
+                                    }
+
+                                    response.setResult(MessageConstants.SUCCESS);
+                                    response.setCommand(command.getCommand());
                                 } else {
                                     response.setResult(MessageConstants.FAILURE);
                                     response.setErrorMessage("Command not recognized. " + record.value());
@@ -253,13 +261,13 @@ public abstract class BaseService {
                         logger.debug(String.format("Sending message: '%s' to topic: '%s'", message, topic));
 
                         producer.send(new ProducerRecord<>(topic, message),
-                                (metadata, e) -> {
-                                    if (e != null) {
-                                        logger.error(e.getMessage(), e);
-                                    }
+                            (metadata, e) -> {
+                                if (e != null) {
+                                    logger.error(e.getMessage(), e);
+                                }
 
-                                    logger.trace(String.format("The offset of the record we just sent is: %d", metadata.offset()));
-                                });
+                                logger.trace(String.format("The offset of the record we just sent is: %d", metadata.offset()));
+                            });
                     }
 
                     producer.flush();

@@ -7,6 +7,7 @@ import { checkCookie, deleteCookie, writeToScreen } from './common/common';
 import './App.css';
 
 const App = () => {
+  const [ serverDown, setServerDown ] = useState(false);
   const [ isLoggedIn, setIsLoggedIn ] = useState(false);
   const [ isLoggingOut, setIsLoggingOut ] = useState(false);
   const [ websocket, setWebsocket ] = useState(null);
@@ -15,26 +16,30 @@ const App = () => {
   const [ upDownList, setUpDownList ] = useState([]);
   const [ weatherList, setWeatherList ] = useState([]);
 
-  const startWebSocket = useCallback(wsUrl => {
+  // Connect the websocket to the server and set up listeners to handle incoming changes
+  const startWebSocket = useCallback(username => {
     const wsProt = window.location.protocol === 'http:' ? 'ws:' : 'wss:';
-    const ws = new WebSocket(wsProt + "//" + window.location.hostname + ":8080/wsticker");
+    let ws = new WebSocket(wsProt + "//" + window.location.hostname + ":8080/wswhirlpool");
     ws.onopen = evt => {
       writeToScreen("CONNECTED");
+      const message = `{"type":"ALL", "id":"${username}", "command":"refresh", "subscription":"ALL"}`;
+      ws.send(message);
+      writeToScreen("SENT: " + message);
     };
 
     ws.onclose = evt => {
       // once the websocket is finished closing, we've completed the logout process
-      window.triedCookieAuth = false;
       writeToScreen("DISCONNECTED");
       setIsLoggedIn(false);
       setIsLoggingOut(false);
     };
 
+    // Every time the server sends us something over the websocket, this function will be called.
     ws.onmessage = evt => {
-      var data = evt.data;
-      var dataResponse = JSON.parse(data),
-          subData,
-          propertyName;
+      const data = evt.data;
+      const dataResponse = JSON.parse(data);
+      let subData;
+      let propertyName;
 
       writeToScreen('RESPONSE: ' + data);
 
@@ -94,22 +99,23 @@ const App = () => {
     };
 
     ws.onerror = evt => {
+      setServerDown(true);
+      ws = null;
+      setWebsocket(null);
       writeToScreen('ERROR: ' + evt.data);
     };
 
     setWebsocket(ws);
-  }, [setWebsocket, setWeatherList, setStockList, setUpDownList]);
+  }, [setWebsocket, setWeatherList, setStockList, setUpDownList, setServerDown]);
 
   const authenticated = useCallback(username => {
     setClientName(username);
     setIsLoggedIn(true);
-    startWebSocket();
+    startWebSocket(username);
   }, [startWebSocket, setClientName, setIsLoggedIn]);
 
-  const loginHandler = useCallback(async e => {
+  const loginHandler = useCallback(async (e, username, password) => {
     e.preventDefault();
-    const username = document.getElementById('user').value;
-    const password = document.getElementById('password').value;
 
     // This is now called when the user logs in
     const jsonBody = JSON.stringify({user: username, password: password});
@@ -128,15 +134,16 @@ const App = () => {
       if (json?.response === 'fail') {
         alert(`Error: login failed`);
       } else {
+        setServerDown(false);
         authenticated(username);
       }
     } else {
       alert(`Error: ${response.status}`);
     }
-  }, [authenticated]);
+  }, [authenticated, setServerDown]);
 
   const removeSubscription = useCallback((data, subscriptionType) => {
-    var message = `{"type":"${subscriptionType}", "id":"${clientName}", "command":"remove", "subscription":"${data}"}`;
+    const message = `{"type":"${subscriptionType}", "id":"${clientName}", "command":"remove", "subscription":"${data}"}`;
     if (websocket) {
       websocket.send(message);
       writeToScreen("SENT: " + message);
@@ -195,44 +202,48 @@ const App = () => {
     setIsLoggingOut(true);
   }, [removeSubscription]);
 
+  // This effect checks to see if we have a cookie set so we can automatically login
   useEffect(() => {
-    // check to see if we have a cookie set so we can automatically login
-    // the timeout makes React happy
     const username = checkCookie();
-    if (username && !isLoggedIn) {
+    if (username && !isLoggedIn && !serverDown) {
       authenticated(username);
     }
-  }, [isLoggedIn, authenticated]);
+  }, [isLoggedIn, authenticated, serverDown]);
 
-  // if we are logging out, check to see if all of the subscriptions have been updated
-  // from the result of the websocket remove subscription calls. if everything is done,
-  // finish the logout
-  if (isLoggingOut && !stockList.length && !upDownList.length && !weatherList.length) {
-      // the timeout makes React happy
-      setTimeout(async () => {
-      const response = await fetch('/api/logout', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json;charset=utf-8',
-          'Content-Length': 2
-        },
-        body: {}
-      });
+  // This effect looks to see if all subscriptions have been removed while logging out.
+  // When that happens, then we can finish up and close everything cleanly.
+  useEffect(() => {
+    const checkFinishedLogout = async () => {
+      // if we are logging out, check to see if all of the subscriptions have been updated
+      // from the result of the websocket remove subscription calls. if everything is done,
+      // finish the logout
+      if (isLoggingOut && !stockList.length && !upDownList.length && !weatherList.length) {
+        const response = await fetch('/api/logout', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json;charset=utf-8',
+            'Content-Length': 2
+          },
+          body: {}
+        });
 
-      if (response.status === 200) {
-        await response.json();
-        deleteCookie(clientName);
-        setClientName(null);
-        if (websocket) {
-          websocket.close();
-          setWebsocket(null);
+        if (response.status === 200) {
+          await response.json();
+          if (websocket) {
+            websocket.close();
+            setWebsocket(null);
+          }
+          deleteCookie(clientName);
+          setClientName(null);
+        } else {
+          alert(`Error: ${response.status}`);
         }
-      } else {
-        alert(`Error: ${response.status}`);
       }
-    }, 1000);
-  }
+    };
+
+    checkFinishedLogout();
+  }, [clientName, isLoggingOut, stockList, upDownList, weatherList, websocket]);
 
   return (
     <div className="app">

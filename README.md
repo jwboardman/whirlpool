@@ -30,7 +30,7 @@ and builds runnable deployed targets. Finally, it starts the services, and final
 - Run `./maclocal_kill.sh` (or `sudo ./linuxlocal_kill.sh`)
 - This will kill the services and server, then shut down Kafka, then shutdown Zookeeper. `NOTE`: It will also `REMOVE` the Kafka logs and Zookeeper data in /tmp/zookeeper and /tmp/kafka-logs!!!
 
-## About the UI
+## About the React UI
 Here's a screenshot:
 ![Whirlpool Screen Shot](https://github.com/jwboardman/whirlpool/blob/master/whirlpool_react_ui.png?raw=true "Whirlpool")
 
@@ -49,12 +49,21 @@ if you don't have Node installed, use nvm to easily control Node versions
 - install node modules `yarn install`
 - start dev server `yarn start`
 
-## UI usage
-- To add a stock symbol, click on the + icon next to "Stocks", enter the ticker symbol (i.e. "GOOG") and click the Add button. To remove it, click the trash can icon next to the stock.
-- To add a website to test whether it is up or down, click on the + icon next to "Up Down", type in the fully-qualified URL (i.e. http://facebook.com) and click the Add button. To remove it, click the trash can icon next to the URL.
-- To add a weather check, click on the + icon next to "Weather", type the zip code (i.e. "10001") and click the Add button. To remove it, click the trash can icon next to the weather.
+## React UI usage
+- To add a stock symbol, click anywhere on the "Stocks +" header, enter the ticker symbol (i.e. "GOOG") and click the Add button. The reason you can click on the text or the + is for accessibility - the + by itself is really too small of a target. To remove it, click the trash can icon next to the stock.
+- To add a website to test whether it is up or down, click anywhere on the "Up Down +" header, type in the fully-qualified URL (i.e. http://facebook.com) and click the Add button. To remove it, click the trash can icon next to the URL.
+- To add a weather check, click anywhere on the "Weather +" header, type the zip code (i.e. "10001") and click the Add button. To remove it, click the trash can icon next to the weather.
 
 - Subscriptions survive page refresh (with the same userid) because they are stored with each service in memory. A "real" system would of course use a database. Logging out cleans up all subscriptions for a user. A cookie is set upon login so reloading the page automatically logs you back in. The cookie is expired upon logout.
 
+## About the old Vanilla JS UI
+The previous UI still works. Here's a screenshot:
+![Whirlpool Screen Shot](https://github.com/jwboardman/whirlpool/blob/master/whirlpool.png?raw=true "Whirlpool")
+
+- To add a stock symbol, type it in (i.e. "GOOG") and click the A button under "Stock". To remove it, click the X.
+- To add a website to test whether it is up or down, type in the fully-qualified URL (i.e. http://facebook.com) and click the A button under "UpDown". To remove it, click the X.
+- To add a weather check, type the city,state in (i.e. "chicago,il") and click the A button under "City,State". To remove it, click the X.
+
 ## Ports/Logs
 - http://localhost:3000/ - the React app
+- http://localhost:8080/ - the old vanilla JS UI

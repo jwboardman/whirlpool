@@ -21,6 +21,7 @@ import java.util.*;
 
 /**
  * This producer will send stock updates to the weather topic.
+ * Uses ugly screen scraping since I couldn't find a free service to use.
  */
 public class WeatherService extends BaseService {
     private static final String WEATHER_URL1_START = "https://data.api.cnn.io/weather/citySearch/json/";
