@@ -36,6 +36,19 @@ public abstract class BaseService {
     // Keep track of the subscriptions each user has asked for info about
     protected static Map<String, List<String>> allSubscriptions = new ConcurrentHashMap<>();
 
+    private static final ThreadFactory consumerThreadFactory = new ThreadFactoryBuilder()
+        .setDaemon(true)
+        .setNameFormat("consumer-%d")
+        .build();
+    private static final ThreadFactory producerThreadFactory = new ThreadFactoryBuilder()
+        .setDaemon(true)
+        .setNameFormat("producer-%d")
+        .build();
+    private static final ThreadFactory dataThreadFactory = new ThreadFactoryBuilder()
+        .setDaemon(true)
+        .setNameFormat("data-%d")
+        .build();
+
     public BaseService() {
     }
 
@@ -44,35 +57,21 @@ public abstract class BaseService {
     protected abstract void collectData(Gson gson, String user, List<String> subscriptions);
 
     public void startServer(String commandTopic, String producerTopic) {
-        consumerExecutor = Executors.newSingleThreadExecutor(
-            new ThreadFactoryBuilder()
-                .setDaemon(true)
-                .setNameFormat("consumer-%d")
-                .build()
-        );
-
-        producerExecutor = Executors.newSingleThreadExecutor(
-            new ThreadFactoryBuilder()
-                .setDaemon(true)
-                .setNameFormat("producer-%d")
-                .build()
-        );
-
-        dataExecutor = Executors.newSingleThreadExecutor(
-            new ThreadFactoryBuilder()
-                .setDaemon(true)
-                .setNameFormat("producer-%d")
-                .build()
-        );
+        consumerExecutor = Executors.newSingleThreadExecutor(consumerThreadFactory);
+        producerExecutor = Executors.newSingleThreadExecutor(producerThreadFactory);
+        dataExecutor = Executors.newSingleThreadExecutor(dataThreadFactory);
 
         FutureTask<String> sendTickers = new FutureTask<>(new SendDataCallable(producerTopic));
         producerExecutor.execute(sendTickers);
+        producerExecutor.shutdown();
 
         FutureTask<String> readTickers = new FutureTask<>(new ReaderCallable(commandTopic));
         consumerExecutor.execute(readTickers);
+        consumerExecutor.shutdown();
 
         FutureTask<String> dataTickers = new FutureTask<>(new DataCollectorCallable());
         dataExecutor.execute(dataTickers);
+        dataExecutor.shutdown();
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             logger.info("Shutting down...");
@@ -110,7 +109,7 @@ public abstract class BaseService {
             try {
                 while (keepRunning.get()) {
                     // read records with a short timeout. If we time out, we don't really care.
-                    ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(200));
+                    ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
                     if (records.count() == 0) {
                         timeouts++;
                     } else {
@@ -125,27 +124,28 @@ public abstract class BaseService {
                         if (record.topic().equals(topic)) {
                             List<String> items;
                             Command command = gson.fromJson(record.value(), Command.class);
+                            String commandId = command.getId();
                             response.setCommand(command.getCommand());
                             response.setSubscription(command.getSubscription());
-                            response.setId(command.getId());
+                            response.setId(commandId);
                             response.setErrorMessage(null);
 
                             if (command.getCommand() != null) {
                                 if ("add".equals(command.getCommand())) {
-                                    items = allSubscriptions.get(command.getId());
+                                    items = allSubscriptions.get(commandId);
                                     if (items == null) {
                                         items = new CopyOnWriteArrayList<>();
                                     }
 
                                     items.add(command.getSubscription());
-                                    allSubscriptions.put(command.getId(), items);
+                                    allSubscriptions.put(commandId, items);
                                     response.setResult(MessageConstants.SUCCESS);
                                 } else if ("remove".equals(command.getCommand())) {
-                                    items = allSubscriptions.get(command.getId());
+                                    items = allSubscriptions.get(commandId);
 
                                     if (items.contains(command.getSubscription())) {
                                         items.remove(command.getSubscription());
-                                        allSubscriptions.put(command.getId(), items);
+                                        allSubscriptions.put(commandId, items);
                                         response.setResult(MessageConstants.SUCCESS);
                                     } else {
                                         response.setResult(MessageConstants.FAILURE);
@@ -153,9 +153,9 @@ public abstract class BaseService {
                                         response.setErrorMessage("Subscription: (" + command.getSubscription() + ") was not found");
                                     }
                                 } else if ("refresh".equals(command.getCommand())) {
-                                    items = allSubscriptions.get(command.getId());
+                                    items = allSubscriptions.get(commandId);
                                     if (items != null && items.size() > 0) {
-                                        collectData(gson, command.getId(), items);
+                                        collectData(gson, commandId, items);
                                     }
 
                                     response.setResult(MessageConstants.SUCCESS);
@@ -273,7 +273,7 @@ public abstract class BaseService {
                     producer.flush();
 
                     // Don't busy wait
-                    Thread.sleep(20L);
+                    Thread.sleep(500L);
                 }
             } catch (Throwable throwable) {
                 logger.error(throwable.getMessage(), throwable);

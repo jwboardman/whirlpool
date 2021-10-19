@@ -8,7 +8,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.codec.http.multipart.Attribute;
 import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
@@ -16,7 +15,6 @@ import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import io.netty.handler.codec.http.websocketx.*;
 import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
-import io.netty.util.concurrent.GlobalEventExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,9 +35,8 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
     private WebSocketServerHandshaker handshaker;
     private StringBuilder frameBuffer = null;
     private final NettyHttpFileHandler httpFileHandler = new NettyHttpFileHandler();
-    private static final ChannelGroup channels = new DefaultChannelGroup ("whirlpoolChannelGruop", GlobalEventExecutor.INSTANCE);
-
-    private final WebSocketMessageHandler wsMessageHandler = new WhirlpoolMessageHandler(channels);
+    private final WebSocketMessageHandler wsMessageHandler = new WhirlpoolMessageHandler();
+    private WebSocketServerHandshakerFactory wsFactory;
 
     public WhirlpoolServerHandler() {
     }
@@ -60,6 +57,7 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
         logger.info("[END] A Channel has been removed");
+        wsMessageHandler.shutdownHandler();
         super.handlerRemoved(ctx);
     }
 
@@ -125,8 +123,8 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
     }
 
     @SuppressWarnings("unlikely-arg-type")
-    protected void handleHttpRequest(ChannelHandlerContext ctx, FullHttpRequest req)
-            throws Exception {
+    protected void handleHttpRequest(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
+        ChannelGroup channels = wsMessageHandler.getChannelGroup();
         String uri = req.uri();
         HttpMethod method = req.method();
 
@@ -283,8 +281,11 @@ public class WhirlpoolServerHandler extends SimpleChannelInboundHandler<Object> 
             String upgradeHeader = upgradeHeaderCharSeq.toString();
             if ("websocket".equalsIgnoreCase(upgradeHeader)) {
               // Handshake. Ideally you'd want to configure your websocket uri
-              String url = "ws://" + req.headers().get("Host") + "/wswhirlpool";
-              WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(url, null, false);
+              String url = "ws://" + req.headers().get("Host") + "/wsticker";
+              if (wsFactory == null) {
+                  wsFactory = new WebSocketServerHandshakerFactory(url, null, false);
+              }
+
               handshaker = wsFactory.newHandshaker(req);
               if (handshaker == null) {
                   WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(ctx.channel());

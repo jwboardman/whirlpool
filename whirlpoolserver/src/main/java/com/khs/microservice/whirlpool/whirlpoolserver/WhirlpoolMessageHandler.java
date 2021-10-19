@@ -9,8 +9,10 @@ import com.khs.microservice.whirlpool.common.MessageConstants;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.group.ChannelGroup;
+import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.util.AttributeKey;
+import io.netty.util.concurrent.GlobalEventExecutor;
 
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -32,39 +34,50 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
     private static final Logger logger = LoggerFactory.getLogger(WhirlpoolMessageHandler.class);
+    private static final AtomicBoolean keepRunning = new AtomicBoolean(true);
+    private static final ThreadFactory consumerThreadFactory = new ThreadFactoryBuilder()
+        .setDaemon(true)
+        .setNameFormat("to-client-%d").build();
+    private static final ThreadFactory producerThreadFactory = new ThreadFactoryBuilder()
+        .setDaemon(true)
+        .setNameFormat("to-kafka-%d").build();
+
+    private ConcurrentLinkedQueue<String> requestQueue = new ConcurrentLinkedQueue<>();
+    private final ChannelGroup channels;
 
     // stateless JSON serializer/deserializer
     private Gson gson = new Gson();
+    private volatile boolean shutdownHandler = false;
 
-    private static final AtomicBoolean keepRunning = new AtomicBoolean(true);
-
-    private final ConcurrentLinkedQueue<String> requestQueue = new ConcurrentLinkedQueue<>();
-
-    private final ChannelGroup channels;
-
-    public WhirlpoolMessageHandler(ChannelGroup channels) {
-        this.channels = channels;
+    public WhirlpoolMessageHandler() {
+        channels = new DefaultChannelGroup("whirlpoolChannelGroup", GlobalEventExecutor.INSTANCE);
         ReadIncomingCallable toClientCallable = new ReadIncomingCallable();
         FutureTask<String> toClientPc = new FutureTask<>(toClientCallable);
 
-        ExecutorService toClientExecutor = Executors.newSingleThreadExecutor(
-            new ThreadFactoryBuilder()
-                .setDaemon(true)
-                .setNameFormat("to-client-%d")
-                .build()
-        );
+        ExecutorService toClientExecutor = Executors.newSingleThreadExecutor(consumerThreadFactory);
         toClientExecutor.execute(toClientPc);
+        toClientExecutor.shutdown();
 
         SendCommandsToKafkaCallable toKafkaCallable = new SendCommandsToKafkaCallable();
         FutureTask<String> toKafka = new FutureTask<>(toKafkaCallable);
 
-        ExecutorService toKafkaExecutor = Executors.newSingleThreadExecutor(
-            new ThreadFactoryBuilder()
-                .setDaemon(true)
-                .setNameFormat("to-kafka-%d")
-                .build()
-        );
+        ExecutorService toKafkaExecutor = Executors.newSingleThreadExecutor(producerThreadFactory);
         toKafkaExecutor.execute(toKafka);
+        toKafkaExecutor.shutdown();
+    }
+
+    public ChannelGroup getChannelGroup() {
+        return channels;
+    }
+
+    public ConcurrentLinkedQueue<String> getRequestQueue() {
+        return requestQueue;
+    }
+
+    public void shutdownHandler() {
+        shutdownHandler = true;
+        channels.close();
+        requestQueue = null;
     }
 
     public String handleMessage(ChannelHandlerContext ctx, String frameText) {
@@ -110,7 +123,7 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
             try {
                 String request;
 
-                while (keepRunning.get()) {
+                while (keepRunning.get() && !shutdownHandler) {
                     while ((request = requestQueue.poll()) != null) {
                         // simple class containing only the type
                         Message message = gson.fromJson(request, Message.class);
@@ -151,13 +164,17 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
                             logger.info(String.format("Ignoring message with unknown type %s", message.getType()));
                         }
                     }
+
+                    Thread.sleep(500L);
                 }
             } catch (Throwable throwable) {
                 logger.error(throwable.getMessage(), throwable);
             } finally {
-                producer.close();
+                logger.trace("Trying to close Producer");
+                producer.close(Duration.ofSeconds(10L));
             }
 
+            logger.trace("Producer thread ending");
             return "done";
         }
     }
@@ -180,9 +197,9 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
             int timeouts = 0;
 
             try {
-                while (keepRunning.get()) {
+                while (keepRunning.get() && !shutdownHandler) {
                     // read records with a short timeout. If we time out, we don't really care.
-                    ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(200));
+                    ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
                     if (records.count() == 0) {
                         timeouts++;
                     } else {
@@ -214,7 +231,9 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
                                 }
 
                                 if (!channelFound) {
-                                    logger.warn("Can't get channel because id wasn't set!");
+                                    // this happens when the server restarts and then tries to send data
+                                    // to a client that hasn't reconnected yet
+                                    // logger.warn("Can't get channel because id wasn't set!");
                                 }
                                 break;
 
@@ -232,9 +251,11 @@ public class WhirlpoolMessageHandler implements WebSocketMessageHandler {
             } catch(Throwable t) {
                 logger.error(t.getMessage(), t);
             } finally {
-                consumer.close();
+                logger.trace("Trying to close Consumer");
+                consumer.close(Duration.ofSeconds(10L));
             }
 
+            logger.trace("Consumer thread ending");
             return "done";
         }
     }
