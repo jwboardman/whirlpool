@@ -187,6 +187,39 @@ function start_services {
     cd ..
 }
 
+# check for required tools
+echo "Checking for maven"
+which mvn
+if [ $? -eq 0 ]; then
+   version=$("mvn" -v 2>&1 | awk -F ' ' '/Apache Maven/ {print $3}')
+   if [ "${version:0:1}" == "3" ] ;
+   then
+     echo "Maven version 3 found: $version"
+   else
+     echo "Maven incorrect version $version"
+     exit 1
+   fi
+else
+   echo "Maven not found. Maven 3 is required."
+   exit 1
+fi
+
+echo "Checking for Java"
+which java
+if [ $? -eq 0 ]; then
+   version=$("java" -version 2>&1 | awk -F '"' '/version/ {print $2}')
+   if [ "${version:0:3}" == "1.8" ] ;
+   then
+     echo "Java version 8 found: $version"
+   else
+     echo "Java incorrect version $version"
+     exit 1
+   fi
+else
+   echo "Java not found. Java 8 is required. Java 9 or higher will not work."
+   exit 1
+fi
+
 # find our local ip
 export MY_LOCAL_IP=$(hostname -I | perl -nle'/(^\S*)/ && print $1')
 echo "Local IP is $MY_LOCAL_IP"
