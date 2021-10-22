@@ -63,6 +63,7 @@ public abstract class BaseService {
 
         FutureTask<String> sendTickers = new FutureTask<>(new SendDataCallable(producerTopic));
         producerExecutor.execute(sendTickers);
+        // tell the Executor there will be no further tasks once the thread ends.
         producerExecutor.shutdown();
 
         FutureTask<String> readTickers = new FutureTask<>(new ReaderCallable(commandTopic));
