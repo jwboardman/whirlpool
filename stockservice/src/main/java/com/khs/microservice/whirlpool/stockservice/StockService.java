@@ -59,11 +59,11 @@ public class StockService extends BaseService {
                         String data = EntityUtils.toString(entity);
                         int priceOffset = data.indexOf("regularMarketPrice");
                         if (priceOffset > -1) {
-                            int fmtOffset = data.indexOf("fmt", priceOffset);
+                            int fmtOffset = data.indexOf("value", priceOffset);
                             if (fmtOffset > -1) {
-                                int closeBracketOffset = data.indexOf("}", fmtOffset);
+                                int closeBracketOffset = data.indexOf("\"", fmtOffset + 7);
                                 if (closeBracketOffset > -1) {
-                                    String price = data.substring(fmtOffset + 6, closeBracketOffset - 1);
+                                    String price = data.substring(fmtOffset + 7, closeBracketOffset);
                                     subscriptionData.put(subscription, price);
                                 }
                             }
