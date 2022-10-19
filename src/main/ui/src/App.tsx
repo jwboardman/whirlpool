@@ -1,5 +1,5 @@
 /* eslint-disable no-restricted-syntax */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Login from './components/Login';
 import Main from './components/Main';
 import AppContext from './store/app-context';
