@@ -12,7 +12,7 @@ interface UpDownProps {
 
 const UpDown = (props: UpDownProps): JSX.Element => {
   const { item } = props;
-  const { key, data } = item;
+  const { key, data, timestamp } = item;
   const { status } = data;
 
   const removeUpDownHandler = useSelector(
@@ -37,6 +37,9 @@ const UpDown = (props: UpDownProps): JSX.Element => {
         <div className={`${styles.row} ${styles.left}`}>
           &nbsp;&nbsp;{status}
         </div>
+        <div className={`${styles.row} ${styles.left}`}>
+          &nbsp;&nbsp;{timestamp}&nbsp;&nbsp;
+        </div>
       </div>
     </div>
   );
@@ -48,6 +51,7 @@ UpDown.propTypes = {
     data: PropTypes.shape({
       status: PropTypes.string,
     }),
+    timestamp: PropTypes.string,
   }).isRequired,
 };
 

@@ -3,4 +3,5 @@ export default interface StockData {
   data: {
     price: string;
   };
+  timestamp: string;
 }

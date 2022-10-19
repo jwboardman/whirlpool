@@ -7,4 +7,5 @@ export default interface WeatherData {
     city: string;
     stateOrCountry: string;
   };
+  timestamp: string;
 }

@@ -3,4 +3,5 @@ export default interface UpDownData {
   data: {
     status: any;
   };
+  timestamp: string;
 }
