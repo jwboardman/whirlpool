@@ -1,12 +1,12 @@
-import { useContext } from 'react';
+import { useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
-import UpDownData from '../types/UpDownData';
-import StockData from '../types/StockData';
-import WeatherData from '../types/WeatherData';
-import AppContext from '../store/app-context';
-import WeatherLocation from './WeatherLocation';
-import Stock from './Stock';
-import UpDown from './UpDown';
+import UpDownData from '../../types/UpDownData';
+import StockData from '../../types/StockData';
+import WeatherData from '../../types/WeatherData';
+import WeatherLocation from '../weather/WeatherLocation';
+import Stock from '../stock/Stock';
+import UpDown from '../upDown/UpDown';
+import InitialState from '../../types/InitialState';
 
 import styles from './ServiceList.module.css';
 
@@ -15,17 +15,23 @@ interface ServiceListProps {
 }
 
 const ServiceList = (props: ServiceListProps): JSX.Element => {
-  const ctx = useContext(AppContext);
   const { serviceName } = props;
+  const stockList = useSelector((state: InitialState) => state.stock.stockList);
+  const upDownList = useSelector(
+    (state: InitialState) => state.upDown.upDownList
+  );
+  const weatherList = useSelector(
+    (state: InitialState) => state.weather.weatherList
+  );
 
   let list;
 
   if (serviceName === 'weather') {
-    list = ctx.weatherList;
+    list = weatherList;
   } else if (serviceName === 'stocks') {
-    list = ctx.stockList;
+    list = stockList;
   } else if (serviceName === 'updown') {
-    list = ctx.upDownList;
+    list = upDownList;
   }
 
   return (

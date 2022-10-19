@@ -1,9 +1,11 @@
-import { useCallback, useContext } from 'react';
-import AppContext from '../store/app-context';
+import { useCallback } from 'react';
+import { useSelector } from 'react-redux';
+import InitialState from '../../types/InitialState';
 
 const Login = (): JSX.Element => {
-  const ctx = useContext(AppContext);
-  const { loginHandler } = ctx;
+  const loginHandler = useSelector(
+    (state: InitialState) => state.app.loginHandler
+  );
 
   const login = useCallback(
     (e: any) => {

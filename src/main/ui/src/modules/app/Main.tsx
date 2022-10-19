@@ -1,20 +1,20 @@
 /* eslint-disable react/jsx-filename-extension */
-import React, { useCallback, useContext, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
-import AppContext from '../store/app-context';
 import Navigator from './Navigator';
 import ServiceList from './ServiceList';
-import Modal from './Modal';
+import Modal from '../../components/Modal';
 
-import { writeToScreen } from '../common/common';
+import { writeToScreen } from '../../common/common';
 
 import styles from './Main.module.css';
-import { WhirlpoolContext } from '../types/WhirlpoolContext';
+import InitialState from '../../types/InitialState';
 
 const Main = (): JSX.Element => {
-  const ctx = useContext<WhirlpoolContext>(AppContext);
-  const { websocket, clientName } = ctx;
+  const websocket = useSelector((state: InitialState) => state.app.websocket);
+  const clientName = useSelector((state: InitialState) => state.app.clientName);
   const [modalVisible, setModalVisible] = useState<string | null>(null);
 
   const doSend = useCallback(

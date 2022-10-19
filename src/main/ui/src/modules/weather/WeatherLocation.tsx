@@ -1,17 +1,16 @@
-import { useContext } from 'react';
+import { useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
-import AppContext from '../store/app-context';
 import styles from './WeatherLocation.module.css';
-import WeatherData from '../types/WeatherData';
+import WeatherData from '../../types/WeatherData';
+import InitialState from '../../types/InitialState';
 
 interface WeatherProps {
   item: WeatherData;
 }
 
 const WeatherLocation = (props: WeatherProps): JSX.Element => {
-  const ctx = useContext(AppContext);
   const { item } = props;
   const { key, data } = item;
   const {
@@ -22,13 +21,17 @@ const WeatherLocation = (props: WeatherProps): JSX.Element => {
     stateOrCountry,
   } = data;
 
+  const removeWeatherHandler = useSelector(
+    (state: InitialState) => state.weather.removeWeatherHandler
+  );
+
   return (
     <div className={`${styles.cardFrame} ${styles.flexRow}`}>
       <button
         type="button"
         className={`${styles.red} ${styles.right20}`}
-        id="remove_weather"
-        onClick={ctx.removeWeatherHandler as any}
+        name="remove_weather"
+        onClick={removeWeatherHandler}
         data-key={key}
       >
         <FontAwesomeIcon icon={faTrash} />
