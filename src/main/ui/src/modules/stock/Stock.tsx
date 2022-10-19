@@ -1,51 +1,54 @@
-import React, { useContext } from 'react';
+import { useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
-import AppContext from '../store/app-context';
-import styles from './UpDown.module.css';
-import UpDownData from '../types/UpDownData';
+import styles from './Stock.module.css';
+import StockData from '../../types/StockData';
+import InitialState from '../../types/InitialState';
 
-interface UpDownProps {
-  item: UpDownData;
+interface StockProps {
+  item: StockData;
 }
 
-const UpDown = (props: UpDownProps): JSX.Element => {
-  const ctx = useContext(AppContext);
+const Stock = (props: StockProps): JSX.Element => {
   const { item } = props;
   const { key, data } = item;
-  const { status } = data;
+  const { price } = data;
+
+  const removeStockHandler = useSelector(
+    (state: InitialState) => state.stock.removeStockHandler
+  );
 
   return (
     <div className={`${styles.cardFrame} ${styles.flexRow}`}>
       <button
         type="button"
         className={`${styles.red} ${styles.right20}`}
-        id="remove_updown"
-        onClick={ctx.removeUpDownHandler as any}
+        name="remove_stock"
+        onClick={removeStockHandler}
         data-key={key}
       >
         <FontAwesomeIcon icon={faTrash} />
       </button>
       <div className={styles.flexColumn}>
         <div className={`${styles.row} ${styles.left} ${styles.cardHeader}`}>
-          &nbsp;&nbsp;Status for {key}&nbsp;&nbsp;
+          &nbsp;&nbsp;Price for {key}&nbsp;&nbsp;
         </div>
         <div className={`${styles.row} ${styles.left}`}>
-          &nbsp;&nbsp;{status}
+          &nbsp;&nbsp;{price}
         </div>
       </div>
     </div>
   );
 };
 
-UpDown.propTypes = {
+Stock.propTypes = {
   item: PropTypes.shape({
     key: PropTypes.string,
     data: PropTypes.shape({
-      status: PropTypes.string,
+      price: PropTypes.string,
     }),
   }).isRequired,
 };
 
-export default UpDown;
+export default Stock;

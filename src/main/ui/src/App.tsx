@@ -1,24 +1,135 @@
 /* eslint-disable no-restricted-syntax */
-import React, { useCallback, useEffect, useState } from 'react';
-import Login from './components/Login';
-import Main from './components/Main';
-import AppContext from './store/app-context';
+import { useCallback, useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+
+import Login from './modules/app/Login';
+import Main from './modules/app/Main';
 import { checkCookie, deleteCookie, writeToScreen } from './common/common';
 
 import './App.css';
 import StockData from './types/StockData';
 import UpDownData from './types/UpDownData';
 import WeatherData from './types/WeatherData';
+import InitialState from './types/InitialState';
+
+import * as appActions from './modules/app/actions';
+import * as stockActions from './modules/stock/actions';
+import * as upDownActions from './modules/upDown/actions';
+import * as weatherActions from './modules/weather/actions';
+
+import store from './store';
 
 const App = (): JSX.Element => {
+  const dispatch = useDispatch<typeof store.dispatch>();
   const [serverDown, setServerDown] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const isLoggedIn = useSelector((state: InitialState) => state.app.isLoggedIn);
+  const websocket = useSelector((state: InitialState) => state.app.websocket);
+  const clientName = useSelector((state: InitialState) => state.app.clientName);
+  const stockList = useSelector((state: InitialState) => state.stock.stockList);
+  const upDownList = useSelector(
+    (state: InitialState) => state.upDown.upDownList
+  );
+  const weatherList = useSelector(
+    (state: InitialState) => state.weather.weatherList
+  );
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [websocket, setWebsocket] = useState<any>(null);
-  const [clientName, setClientName] = useState<string>('');
-  const [stockList, setStockList] = useState([] as StockData[]);
-  const [upDownList, setUpDownList] = useState([] as UpDownData[]);
-  const [weatherList, setWeatherList] = useState([] as WeatherData[]);
+
+  const onMessage = useCallback(
+    (evt: any) => {
+      const data = evt.data as string;
+      const dataResponse = JSON.parse(data);
+      let subData;
+      let propertyName;
+
+      writeToScreen(`RESPONSE: ${data}`);
+
+      if (dataResponse.type === 'TickerResponse') {
+        const stockData: StockData[] = [];
+
+        for (propertyName in dataResponse.subscriptionData) {
+          if (
+            Object.prototype.hasOwnProperty.call(
+              dataResponse.subscriptionData,
+              propertyName
+            )
+          ) {
+            subData = dataResponse.subscriptionData[propertyName]
+              .split('\\"')
+              .join('"');
+            stockData.push({
+              key: propertyName,
+              data: { price: `$${subData}` },
+            });
+          }
+        }
+
+        dispatch(stockActions.setStockList(stockData));
+      } else if (dataResponse.type === 'UpDownResponse') {
+        const upDownData: UpDownData[] = [];
+
+        for (propertyName in dataResponse.subscriptionData) {
+          if (
+            Object.prototype.hasOwnProperty.call(
+              dataResponse.subscriptionData,
+              propertyName
+            )
+          ) {
+            subData = dataResponse.subscriptionData[propertyName]
+              .split('\\"')
+              .join('"');
+            upDownData.push({ key: propertyName, data: { status: subData } });
+          }
+        }
+
+        dispatch(upDownActions.setUpDownList(upDownData));
+      } else if (dataResponse.type === 'WeatherResponse') {
+        const weatherData: WeatherData[] = [];
+
+        for (propertyName in dataResponse.subscriptionData) {
+          if (
+            Object.prototype.hasOwnProperty.call(
+              dataResponse.subscriptionData,
+              propertyName
+            )
+          ) {
+            subData = dataResponse.subscriptionData[propertyName]
+              .split('\\"')
+              .join('"');
+            const weatherSubscriptionData = JSON.parse(subData);
+            weatherData.push({
+              key: propertyName,
+              data: weatherSubscriptionData,
+            });
+          }
+        }
+
+        dispatch(weatherActions.setWeatherList(weatherData));
+      } else if (
+        dataResponse.command === 'remove' &&
+        (dataResponse.type === 'TickerCommand' ||
+          dataResponse.type === 'UpDownCommand' ||
+          dataResponse.type === 'WeatherCommand')
+      ) {
+        if (dataResponse.type === 'TickerCommand') {
+          const newStockList = stockList.filter(
+            (item) => item.key !== dataResponse.subscription
+          );
+          dispatch(stockActions.setStockList(newStockList));
+        } else if (dataResponse.type === 'UpDownCommand') {
+          const newUpDownList = upDownList.filter(
+            (item) => item.key !== dataResponse.subscription
+          );
+          dispatch(upDownActions.setUpDownList(newUpDownList));
+        } else if (dataResponse.type === 'WeatherCommand') {
+          const newWeatherList = weatherList.filter(
+            (item) => item.key !== dataResponse.subscription
+          );
+          dispatch(weatherActions.setWeatherList(newWeatherList));
+        }
+      }
+    },
+    [weatherList, stockList, upDownList]
+  );
 
   // Connect the websocket to the server and set up listeners to handle incoming changes
   const startWebSocket = useCallback(
@@ -37,127 +148,31 @@ const App = (): JSX.Element => {
       ws.onclose = () => {
         // once the websocket is finished closing, we've completed the logout process
         writeToScreen('DISCONNECTED');
-        setIsLoggedIn(false);
+        dispatch(appActions.setIsLoggedIn(false));
         setIsLoggingOut(false);
       };
 
       // Every time the server sends us something over the websocket, this function will be called.
-      ws.onmessage = (evt) => {
-        const data = evt.data as string;
-        const dataResponse = JSON.parse(data);
-        let subData;
-        let propertyName;
-
-        writeToScreen(`RESPONSE: ${data}`);
-
-        if (dataResponse.type === 'TickerResponse') {
-          const stockData: StockData[] = [];
-
-          for (propertyName in dataResponse.subscriptionData) {
-            if (
-              Object.prototype.hasOwnProperty.call(
-                dataResponse.subscriptionData,
-                propertyName
-              )
-            ) {
-              subData = dataResponse.subscriptionData[propertyName]
-                .split('\\"')
-                .join('"');
-              stockData.push({
-                key: propertyName,
-                data: { price: `$${subData}` },
-              });
-            }
-          }
-
-          setStockList(stockData);
-        } else if (dataResponse.type === 'UpDownResponse') {
-          const upDownData: UpDownData[] = [];
-
-          for (propertyName in dataResponse.subscriptionData) {
-            if (
-              Object.prototype.hasOwnProperty.call(
-                dataResponse.subscriptionData,
-                propertyName
-              )
-            ) {
-              subData = dataResponse.subscriptionData[propertyName]
-                .split('\\"')
-                .join('"');
-              upDownData.push({ key: propertyName, data: { status: subData } });
-            }
-          }
-
-          setUpDownList(upDownData);
-        } else if (dataResponse.type === 'WeatherResponse') {
-          const weatherData: WeatherData[] = [];
-
-          for (propertyName in dataResponse.subscriptionData) {
-            if (
-              Object.prototype.hasOwnProperty.call(
-                dataResponse.subscriptionData,
-                propertyName
-              )
-            ) {
-              subData = dataResponse.subscriptionData[propertyName]
-                .split('\\"')
-                .join('"');
-              const weatherSubscriptionData = JSON.parse(subData);
-              weatherData.push({
-                key: propertyName,
-                data: weatherSubscriptionData,
-              });
-            }
-          }
-
-          setWeatherList(weatherData);
-        } else if (
-          dataResponse.command === 'remove' &&
-          (dataResponse.type === 'TickerCommand' ||
-            dataResponse.type === 'UpDownCommand' ||
-            dataResponse.type === 'WeatherCommand')
-        ) {
-          if (dataResponse.type === 'TickerCommand') {
-            setStockList((prevState) => {
-              return prevState.filter(
-                (item) => item.key !== dataResponse.subscription
-              );
-            });
-          } else if (dataResponse.type === 'UpDownCommand') {
-            setUpDownList((prevState) => {
-              return prevState.filter(
-                (item) => item.key !== dataResponse.subscription
-              );
-            });
-          } else if (dataResponse.type === 'WeatherCommand') {
-            setWeatherList((prevState) => {
-              return prevState.filter(
-                (item) => item.key !== dataResponse.subscription
-              );
-            });
-          }
-        }
-      };
-
+      ws.onmessage = onMessage;
       ws.onerror = (evt) => {
         setServerDown(true);
         ws = null as any;
-        setWebsocket(ws);
+        dispatch(appActions.setWebSocket(ws));
         writeToScreen(`ERROR: ${JSON.stringify(evt)}`);
       };
 
-      setWebsocket(ws);
+      dispatch(appActions.setWebSocket(ws));
     },
-    [setWebsocket, setWeatherList, setStockList, setUpDownList, setServerDown]
+    [websocket, setServerDown]
   );
 
   const authenticated = useCallback(
     (username: string) => {
-      setClientName(username);
-      setIsLoggedIn(true);
+      dispatch(appActions.setClientName(username));
+      dispatch(appActions.setIsLoggedIn(true));
       startWebSocket(username);
     },
-    [startWebSocket, setClientName, setIsLoggedIn]
+    [startWebSocket, clientName, isLoggedIn]
   );
 
   const loginHandler = useCallback(
@@ -251,26 +266,23 @@ const App = (): JSX.Element => {
         e.preventDefault();
       }
 
-      setStockList((prevState) => {
-        prevState.forEach((item) =>
-          removeSubscription(item.key, 'TickerCommand')
-        );
-        return prevState;
-      });
+      stockList.forEach((item) =>
+        removeSubscription(item.key, 'TickerCommand')
+      );
 
-      setUpDownList((prevState) => {
-        prevState.forEach((item) =>
-          removeSubscription(item.key, 'UpDownCommand')
-        );
-        return prevState;
-      });
+      dispatch(stockActions.setStockList([] as StockData[]));
 
-      setWeatherList((prevState) => {
-        prevState.forEach((item) =>
-          removeSubscription(item.key, 'WeatherCommand')
-        );
-        return prevState;
-      });
+      upDownList.forEach((item) =>
+        removeSubscription(item.key, 'UpDownCommand')
+      );
+
+      dispatch(upDownActions.setUpDownList([] as UpDownData[]));
+
+      weatherList.forEach((item) =>
+        removeSubscription(item.key, 'WeatherCommand')
+      );
+
+      dispatch(weatherActions.setWeatherList([] as WeatherData[]));
 
       setIsLoggingOut(true);
     },
@@ -279,6 +291,11 @@ const App = (): JSX.Element => {
 
   // This effect checks to see if we have a cookie set so we can automatically login
   useEffect(() => {
+    dispatch(appActions.setLoginHandler(loginHandler));
+    dispatch(appActions.setLogoutHandler(logoutHandler));
+    dispatch(stockActions.setRemoveStockHandler(removeStockHandler));
+    dispatch(upDownActions.setRemoveUpDownHandler(removeUpDownHandler));
+    dispatch(weatherActions.setRemoveWeatherHandler(removeWeatherHandler));
     const username = checkCookie();
     if (username && !isLoggedIn && !serverDown) {
       authenticated(username);
@@ -312,10 +329,10 @@ const App = (): JSX.Element => {
           await response.json();
           if (websocket) {
             websocket.close();
-            setWebsocket(null as any);
+            dispatch(appActions.setWebSocket(null as any));
           }
           deleteCookie();
-          setClientName('');
+          dispatch(appActions.setClientName(''));
         } else {
           // eslint-disable-next-line no-alert
           alert(`Error: ${response.status}`);
@@ -328,32 +345,15 @@ const App = (): JSX.Element => {
 
   return (
     <div className="app">
-      <AppContext.Provider
-        // eslint-disable-next-line react/jsx-no-constructed-context-values
-        value={{
-          isLoggedIn,
-          websocket,
-          clientName,
-          loginHandler,
-          logoutHandler,
-          removeStockHandler,
-          removeUpDownHandler,
-          removeWeatherHandler,
-          stockList,
-          upDownList,
-          weatherList,
-        }}
-      >
-        {!isLoggedIn ? (
-          <div id="logindiv">
-            <Login />
-          </div>
-        ) : (
-          <div id="maindiv">
-            <Main />
-          </div>
-        )}
-      </AppContext.Provider>
+      {!isLoggedIn ? (
+        <div id="logindiv">
+          <Login />
+        </div>
+      ) : (
+        <div id="maindiv">
+          <Main />
+        </div>
+      )}
     </div>
   );
 };
