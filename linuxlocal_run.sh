@@ -122,7 +122,7 @@ function kafka_topics() {
 
 function zk_kafka() {
     export KAFKA_SCALA_VERSION=2.13
-    export KAFKA_VERSION=3.0.0
+    export KAFKA_VERSION=3.3.1
 
     echo "Removing previous installation of Kafka and Zookeeper"
     rm -rf /opt/kafka_${KAFKA_SCALA_VERSION}-${KAFKA_VERSION}

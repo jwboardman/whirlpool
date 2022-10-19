@@ -11,8 +11,8 @@
 - Maven 3
 
 ## Notes
-- I'm using Java 8, Maven 3.8.1, Kafka 3.0.0, and Netty 5.0.0-alpha2. The script will auto-install (and remove!) Zk/Kafka version 3.0.0, so if you have an existing installation, save it or don't use the script!
-- localhost is used to bypass Kafka 3.0.0's desire to look up your external hostname
+- I'm using Java 8, Maven 3.8.6, Kafka 3.3.1, and Netty 5.0.0-alpha2. The script will auto-install (and remove!) Zk/Kafka version 3.0.0, so if you have an existing installation, save it or don't use the script!
+- localhost is used to bypass Kafka 3.3.1's desire to look up your external hostname
 - No database or security has been included because this is an example.
 - Use any username you like, and the password doesn't matter. Note that logging in multiple times with the same username is not allowed due to the simplistic "session" support with no true users or security present.
 It would not take a lot of work to add true sessions and allow multiple logins using the same username, with updates for a user sent to all the websockets that the user currently has open.
@@ -59,7 +59,7 @@ To get the React site running:
     - expect to see some errors, but they don't keep it from working
     - restart terminal
 
-- install Node `nvm install 14.17.2`
+- install Node `nvm install 16.17.0`
 - install yarn `npm install --global yarn`
 - install node modules `yarn install`
 - start dev server `yarn start`
