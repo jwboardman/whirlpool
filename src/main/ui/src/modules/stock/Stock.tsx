@@ -12,7 +12,7 @@ interface StockProps {
 
 const Stock = (props: StockProps): JSX.Element => {
   const { item } = props;
-  const { key, data } = item;
+  const { key, data, timestamp } = item;
   const { price } = data;
 
   const removeStockHandler = useSelector(
@@ -37,6 +37,9 @@ const Stock = (props: StockProps): JSX.Element => {
         <div className={`${styles.row} ${styles.left}`}>
           &nbsp;&nbsp;{price}
         </div>
+        <div className={`${styles.row} ${styles.left}`}>
+          &nbsp;&nbsp;{timestamp}&nbsp;&nbsp;
+        </div>
       </div>
     </div>
   );
@@ -48,6 +51,7 @@ Stock.propTypes = {
     data: PropTypes.shape({
       price: PropTypes.string,
     }),
+    timestamp: PropTypes.string,
   }).isRequired,
 };
 

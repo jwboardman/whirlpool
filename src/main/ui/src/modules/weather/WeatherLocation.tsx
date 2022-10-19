@@ -12,7 +12,7 @@ interface WeatherProps {
 
 const WeatherLocation = (props: WeatherProps): JSX.Element => {
   const { item } = props;
-  const { key, data } = item;
+  const { key, data, timestamp } = item;
   const {
     temperature,
     feelsLikeTemperature,
@@ -49,6 +49,9 @@ const WeatherLocation = (props: WeatherProps): JSX.Element => {
         <div className={`${styles.row} ${styles.left}`}>
           &nbsp;&nbsp;Condition {conditions}
         </div>
+        <div className={`${styles.row} ${styles.left}`}>
+          &nbsp;&nbsp;{timestamp}&nbsp;&nbsp;
+        </div>
       </div>
     </div>
   );
@@ -64,6 +67,7 @@ WeatherLocation.propTypes = {
       city: PropTypes.string,
       stateOrCountry: PropTypes.string,
     }),
+    timestamp: PropTypes.string,
   }).isRequired,
 };
 

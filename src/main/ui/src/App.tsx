@@ -34,102 +34,111 @@ const App = (): JSX.Element => {
   );
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const onMessage = useCallback(
-    (evt: any) => {
-      const data = evt.data as string;
-      const dataResponse = JSON.parse(data);
-      let subData;
-      let propertyName;
+  useEffect(() => {
+    if (websocket) {
+      websocket.onmessage = (evt: any) => {
+        const data = evt.data as string;
+        const dataResponse = JSON.parse(data);
+        let subData;
+        let propertyName;
 
-      writeToScreen(`RESPONSE: ${data}`);
+        writeToScreen(`RESPONSE: ${data}`);
 
-      if (dataResponse.type === 'TickerResponse') {
-        const stockData: StockData[] = [];
+        if (dataResponse.type === 'TickerResponse') {
+          const stockData: StockData[] = [];
 
-        for (propertyName in dataResponse.subscriptionData) {
-          if (
-            Object.prototype.hasOwnProperty.call(
-              dataResponse.subscriptionData,
-              propertyName
-            )
-          ) {
-            subData = dataResponse.subscriptionData[propertyName]
-              .split('\\"')
-              .join('"');
-            stockData.push({
-              key: propertyName,
-              data: { price: `$${subData}` },
-            });
+          for (propertyName in dataResponse.subscriptionData) {
+            if (
+              Object.prototype.hasOwnProperty.call(
+                dataResponse.subscriptionData,
+                propertyName
+              )
+            ) {
+              subData = dataResponse.subscriptionData[propertyName]
+                .split('\\"')
+                .join('"');
+              stockData.push({
+                key: propertyName,
+                data: {
+                  price: `$${subData}`,
+                },
+                timestamp: dataResponse.timestamp,
+              });
+            }
+          }
+
+          dispatch(stockActions.setStockList(stockData));
+        } else if (dataResponse.type === 'UpDownResponse') {
+          const upDownData: UpDownData[] = [];
+
+          for (propertyName in dataResponse.subscriptionData) {
+            if (
+              Object.prototype.hasOwnProperty.call(
+                dataResponse.subscriptionData,
+                propertyName
+              )
+            ) {
+              subData = dataResponse.subscriptionData[propertyName]
+                .split('\\"')
+                .join('"');
+              upDownData.push({
+                key: propertyName,
+                data: { status: subData },
+                timestamp: dataResponse.timestamp,
+              });
+            }
+          }
+
+          dispatch(upDownActions.setUpDownList(upDownData));
+        } else if (dataResponse.type === 'WeatherResponse') {
+          const weatherData: WeatherData[] = [];
+
+          for (propertyName in dataResponse.subscriptionData) {
+            if (
+              Object.prototype.hasOwnProperty.call(
+                dataResponse.subscriptionData,
+                propertyName
+              )
+            ) {
+              subData = dataResponse.subscriptionData[propertyName]
+                .split('\\"')
+                .join('"');
+              const weatherSubscriptionData = JSON.parse(subData);
+              weatherData.push({
+                key: propertyName,
+                data: weatherSubscriptionData,
+                timestamp: dataResponse.timestamp,
+              });
+            }
+          }
+
+          dispatch(weatherActions.setWeatherList(weatherData));
+        } else if (
+          dataResponse.command === 'remove' &&
+          (dataResponse.type === 'TickerCommand' ||
+            dataResponse.type === 'UpDownCommand' ||
+            dataResponse.type === 'WeatherCommand')
+        ) {
+          if (dataResponse.type === 'TickerCommand') {
+            const newStockList = stockList.filter(
+              (item) => item.key !== dataResponse.subscription
+            );
+            dispatch(stockActions.setStockList(newStockList));
+          } else if (dataResponse.type === 'UpDownCommand') {
+            const newUpDownList = upDownList.filter(
+              (item) => item.key !== dataResponse.subscription
+            );
+            dispatch(upDownActions.setUpDownList(newUpDownList));
+          } else if (dataResponse.type === 'WeatherCommand') {
+            const newWeatherList = weatherList.filter(
+              (item) => item.key !== dataResponse.subscription
+            );
+            dispatch(weatherActions.setWeatherList(newWeatherList));
           }
         }
-
-        dispatch(stockActions.setStockList(stockData));
-      } else if (dataResponse.type === 'UpDownResponse') {
-        const upDownData: UpDownData[] = [];
-
-        for (propertyName in dataResponse.subscriptionData) {
-          if (
-            Object.prototype.hasOwnProperty.call(
-              dataResponse.subscriptionData,
-              propertyName
-            )
-          ) {
-            subData = dataResponse.subscriptionData[propertyName]
-              .split('\\"')
-              .join('"');
-            upDownData.push({ key: propertyName, data: { status: subData } });
-          }
-        }
-
-        dispatch(upDownActions.setUpDownList(upDownData));
-      } else if (dataResponse.type === 'WeatherResponse') {
-        const weatherData: WeatherData[] = [];
-
-        for (propertyName in dataResponse.subscriptionData) {
-          if (
-            Object.prototype.hasOwnProperty.call(
-              dataResponse.subscriptionData,
-              propertyName
-            )
-          ) {
-            subData = dataResponse.subscriptionData[propertyName]
-              .split('\\"')
-              .join('"');
-            const weatherSubscriptionData = JSON.parse(subData);
-            weatherData.push({
-              key: propertyName,
-              data: weatherSubscriptionData,
-            });
-          }
-        }
-
-        dispatch(weatherActions.setWeatherList(weatherData));
-      } else if (
-        dataResponse.command === 'remove' &&
-        (dataResponse.type === 'TickerCommand' ||
-          dataResponse.type === 'UpDownCommand' ||
-          dataResponse.type === 'WeatherCommand')
-      ) {
-        if (dataResponse.type === 'TickerCommand') {
-          const newStockList = stockList.filter(
-            (item) => item.key !== dataResponse.subscription
-          );
-          dispatch(stockActions.setStockList(newStockList));
-        } else if (dataResponse.type === 'UpDownCommand') {
-          const newUpDownList = upDownList.filter(
-            (item) => item.key !== dataResponse.subscription
-          );
-          dispatch(upDownActions.setUpDownList(newUpDownList));
-        } else if (dataResponse.type === 'WeatherCommand') {
-          const newWeatherList = weatherList.filter(
-            (item) => item.key !== dataResponse.subscription
-          );
-          dispatch(weatherActions.setWeatherList(newWeatherList));
-        }
-      }
-    },
-    [weatherList, stockList, upDownList]
-  );
+      };
+    }
+  }, [websocket, weatherList, stockList, upDownList]);
 
   // Connect the websocket to the server and set up listeners to handle incoming changes
   const startWebSocket = useCallback(
@@ -153,7 +162,8 @@ const App = (): JSX.Element => {
       };
 
       // Every time the server sends us something over the websocket, this function will be called.
-      ws.onmessage = onMessage;
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      ws.onmessage = () => {};
       ws.onerror = (evt) => {
         setServerDown(true);
         ws = null as any;
