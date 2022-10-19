@@ -295,6 +295,9 @@ const App = (): JSX.Element => {
       dispatch(weatherActions.setWeatherList([] as WeatherData[]));
 
       setIsLoggingOut(true);
+
+      // reset store on logout
+      dispatch(appActions.userLoggedOut());
     },
     [removeSubscription]
   );

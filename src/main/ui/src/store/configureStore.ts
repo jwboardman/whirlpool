@@ -14,14 +14,12 @@ import thunk from 'redux-thunk';
 import InitialState from '../types/InitialState';
 import rootReducer from '../reducers/rootReducer';
 
-export default function configureStore(
-  initialState: InitialState | undefined
-): { store: Store } {
+export default function configureStore(initialState: InitialState): Store {
   const store = createStore(
     rootReducer,
     initialState,
     composeWithDevTools(applyMiddleware(thunk))
   );
 
-  return { store };
+  return store;
 }

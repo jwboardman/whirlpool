@@ -35,3 +35,9 @@ export const setLogoutHandler = (logoutHandler: any): AnyAction => {
     logoutHandler,
   };
 };
+
+export function userLoggedOut(): AnyAction {
+  return {
+    type: types.USER_LOGGED_OUT,
+  };
+}

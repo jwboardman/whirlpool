@@ -1,5 +1,6 @@
 import { combineReducers } from 'redux';
 import InitialState from '../types/InitialState';
+import * as appTypes from '../modules/app/actions/types';
 import app from '../modules/app/reducers';
 import stock from '../modules/stock/reducers';
 import upDown from '../modules/upDown/reducers';
@@ -16,8 +17,7 @@ const rootReducer = (
   state: InitialState | undefined,
   action: any
 ): InitialState => {
-  if (action.type === 'USER_LOGGED_OUT') {
-    // eslint-disable-next-line no-param-reassign
+  if (action.type === appTypes.USER_LOGGED_OUT) {
     return appReducer(undefined, action);
   }
   return appReducer(state, action);
